@@ -2,7 +2,8 @@ FROM node:22-alpine AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci \
+  && chmod +x node_modules/.bin/vite node_modules/vite/bin/vite.js
 
 COPY . .
 RUN npm run build

@@ -138,6 +138,55 @@ function withDisabled(style, disabled) {
   return { ...style, opacity: 0.5, cursor: 'not-allowed', filter: 'grayscale(0.2)' }
 }
 
+function withLockedInputStyle(style, locked) {
+  if (!locked) return style
+  return {
+    ...style,
+    opacity: 0.55,
+    cursor: 'not-allowed',
+    background: '#f3f2eb',
+  }
+}
+
+function ConfirmModal({ open, title, body, confirmLabel, cancelLabel, onConfirm, onCancel }) {
+  if (!open) return null
+  return (
+    <div
+      onClick={onCancel}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.45)',
+        zIndex: 260,
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        padding: '56px 16px',
+        overflowY: 'auto',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: C.ivory,
+          border: `1px solid ${C.borderCream}`,
+          borderRadius: 16,
+          width: 'min(560px, 100%)',
+          padding: 20,
+          boxShadow: 'rgba(0,0,0,0.12) 0px 12px 40px',
+        }}
+      >
+        <div style={{ ...S.mono, marginBottom: 10 }}>{title}</div>
+        <div style={{ fontSize: 13, lineHeight: 1.5, opacity: 0.9, whiteSpace: 'pre-wrap' }}>{body}</div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 }}>
+          <button style={S.pillSmWhite} onClick={onCancel}>{cancelLabel}</button>
+          <button style={S.pillSm} onClick={onConfirm}>{confirmLabel}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Focus style ───────────────────────────────────────────────────────────────
 
 function useDashedFocus() {
@@ -173,6 +222,7 @@ export default function App() {
   const [periods, setPeriods] = useState(['', '', '', '', ''])
   const period1Ref = useRef(null)
   const [period1Required, setPeriod1Required] = useState(false)
+  const [exportHint, setExportHint] = useState('')
 
   // Employees
   const [employees, setEmployees] = useState([newEmployee()])
@@ -184,6 +234,20 @@ export default function App() {
   const [settingsSaved, setSettingsSaved] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showDisclaimer, setShowDisclaimer] = useState(false)
+  const [calcSettingsUnlocked, setCalcSettingsUnlocked] = useState(false)
+  const [confirmState, setConfirmState] = useState(null)
+
+  function confirmModal({ title, body, confirmLabel = 'Confirm', cancelLabel = 'Cancel' }) {
+    return new Promise(resolve => {
+      setConfirmState({
+        title,
+        body,
+        confirmLabel,
+        cancelLabel,
+        resolve,
+      })
+    })
+  }
 
   // Generate
   const [busy, setBusy] = useState(false)
@@ -201,6 +265,10 @@ export default function App() {
       }
     })()
   }, [])
+
+  useEffect(() => {
+    if (showSettings) setCalcSettingsUnlocked(false)
+  }, [showSettings])
 
   const isWeekly = header.scheduleType === 'Weekly'
 
@@ -241,6 +309,10 @@ export default function App() {
     () => rowCalcs.reduce((sum, c) => sum + c.er + c.ee, 0),
     [rowCalcs],
   )
+  const hasAnyEmployerContribution = useMemo(
+    () => rowCalcs.some(c => (c?.er ?? 0) !== 0),
+    [rowCalcs],
+  )
 
   // Employee table mutations
   function updateEmp(id, patch) {
@@ -261,22 +333,36 @@ export default function App() {
     setEmployees(emps => emps.length > 1 ? emps.filter(e => e.id !== id) : emps)
   }
   function clearAll() {
-    if (!window.confirm('Clear all employee data and reset the form?')) return
-    setEmployerName(settings?.defaultEmployerName || '')
-    setHeader({ regNoRaw: settings?.defaultRegNo || '', contributionYear: new Date().getFullYear(), contributionMonthName: MONTH_NAMES[new Date().getMonth()], scheduleType: 'Monthly' })
-    setPeriods(['', '', '', '', ''])
-    setEmployees([newEmployee()])
+    ;(async () => {
+      const ok = await confirmModal({
+        title: 'Clear all?',
+        body: 'Clear all employee data and reset the form?',
+        confirmLabel: 'Clear all',
+        cancelLabel: 'Cancel',
+      })
+      if (!ok) return
+      setEmployerName(settings?.defaultEmployerName || '')
+      setHeader({ regNoRaw: settings?.defaultRegNo || '', contributionYear: new Date().getFullYear(), contributionMonthName: MONTH_NAMES[new Date().getMonth()], scheduleType: 'Monthly' })
+      setPeriods(['', '', '', '', ''])
+      setEmployees([newEmployee()])
+    })()
   }
 
   async function downloadFromApi(path) {
     if (!periods[0]) {
       setPeriod1Required(true)
+      setExportHint('Set Period 1 before generating files.')
       period1Ref.current?.focus?.()
+      return
+    }
+    if (!hasAnyEmployerContribution) {
+      setExportHint('No rows have an Employer Contribution. Add wages (or check Over 60) to generate a file.')
       return
     }
 
     setBusy(true)
     try {
+      setExportHint('')
       const payload = {
         employerName,
         header,
@@ -326,6 +412,7 @@ export default function App() {
 
   // Settings mutations
   function updateCeiling(idx, field, raw) {
+    if (!calcSettingsUnlocked) return
     setSettings(s => {
       const next = s.wageCeilings.map((c, i) => i === idx ? { ...c, [field]: parseInt(raw, 10) || 0 } : c)
       return { ...s, wageCeilings: next }
@@ -333,14 +420,17 @@ export default function App() {
     setSettingsSaved(false)
   }
   function addCeiling() {
+    if (!calcSettingsUnlocked) return
     setSettings(s => ({ ...s, wageCeilings: [...s.wageCeilings, { from_year: new Date().getFullYear(), from_month: 1, monthly: 0, weekly: 0 }] }))
     setSettingsSaved(false)
   }
   function removeCeiling(idx) {
+    if (!calcSettingsUnlocked) return
     setSettings(s => ({ ...s, wageCeilings: s.wageCeilings.filter((_, i) => i !== idx) }))
     setSettingsSaved(false)
   }
   function updateRate(idx, field, raw) {
+    if (!calcSettingsUnlocked) return
     setSettings(s => {
       const next = s.contributionRates.map((r, i) =>
         i === idx ? { ...r, [field]: field.endsWith('pct') ? parseFloat(raw) || 0 : parseInt(raw, 10) || 0 } : r,
@@ -350,10 +440,12 @@ export default function App() {
     setSettingsSaved(false)
   }
   function addRate() {
+    if (!calcSettingsUnlocked) return
     setSettings(s => ({ ...s, contributionRates: [...s.contributionRates, { from_year: new Date().getFullYear(), from_month: 1, employer_pct: 0, employee_pct: 0 }] }))
     setSettingsSaved(false)
   }
   function removeRate(idx) {
+    if (!calcSettingsUnlocked) return
     setSettings(s => ({ ...s, contributionRates: s.contributionRates.filter((_, i) => i !== idx) }))
     setSettingsSaved(false)
   }
@@ -562,7 +654,10 @@ export default function App() {
           </div>
 
           <div style={{ ...S.btnGroup, justifyContent: 'flex-end' }}>
-            {!periods[0] && <span style={{ fontSize: 12, opacity: 0.5 }}>Set a period date to generate</span>}
+            {exportHint
+              ? <span style={{ fontSize: 12, color: C.oliveGray, maxWidth: 520, textAlign: 'right' }}>{exportHint}</span>
+              : (!periods[0] && <span style={{ fontSize: 12, opacity: 0.6 }}>Set a period date to generate</span>)
+            }
             <button style={withDisabled(S.pill, busy || !periods[0])} onClick={onGenerate} disabled={busy || !periods[0]}>
               {busy ? 'Generating…' : 'Generate file'}
             </button>
@@ -622,12 +717,62 @@ export default function App() {
                     />
                   </div>
                 </div>
+                <div style={{ marginBottom: 10 }} />
 
-                <div style={{ ...S.sectionLabel, marginTop: 20 }}>Over-60 employer rate (%)</div>
+                <div style={{ ...S.sectionLabel, marginTop: 18, display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+                  <span>Calculation settings</span>
+                  {!calcSettingsUnlocked && (
+                    <span style={{ fontSize: 12, opacity: 0.6 }}>Locked to prevent accidental changes.</span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
+                  <button
+                    style={S.pillSmWhite}
+                    onClick={async () => {
+                      if (calcSettingsUnlocked) return setCalcSettingsUnlocked(false)
+                      const ok = await confirmModal({
+                        title: 'Unlock calculation settings?',
+                        body:
+                          'The settings below control contribution calculations (over-60 rate, wage ceilings, and contribution rates).\n\nChanging them can produce incorrect results.\n\nOnly continue if you know what you are doing.',
+                        confirmLabel: 'Unlock',
+                        cancelLabel: 'Cancel',
+                      })
+                      if (ok) setCalcSettingsUnlocked(true)
+                    }}
+                  >
+                    {calcSettingsUnlocked ? 'Lock calculation settings' : 'Unlock calculation settings'}
+                  </button>
+                  <button
+                    style={S.pillSmWhite}
+                    onClick={async () => {
+                      const ok = await confirmModal({
+                        title: 'Reset calculation defaults?',
+                        body:
+                          'Reset calculation settings (over-60 rate, wage ceilings, contribution rates) back to the built-in defaults?\n\nThis will overwrite the saved values.',
+                        confirmLabel: 'Reset',
+                        cancelLabel: 'Cancel',
+                      })
+                      if (!ok) return
+                      try {
+                        const updated = await apiJson('/api/settings/reset-calculation-defaults', { method: 'POST' })
+                        setSettings(updated)
+                        setSettingsSaved(false)
+                        setCalcSettingsUnlocked(false)
+                      } catch (e) {
+                        setSettingsErr(String(e?.message ?? e))
+                      }
+                    }}
+                  >
+                    Reset calculation defaults
+                  </button>
+                </div>
+
+                <div style={{ ...S.sectionLabel, marginTop: 6 }}>Over-60 employer rate (%)</div>
                 <input
-                  style={{ ...S.settingsInputNarrow, width: 120 }}
+                  style={withLockedInputStyle({ ...S.settingsInputNarrow, width: 120 }, !calcSettingsUnlocked)}
                   type="number" step="0.1"
                   value={settings.over60EmployerPct}
+                  disabled={!calcSettingsUnlocked}
                   onChange={e => { setSettings(s => ({ ...s, over60EmployerPct: parseFloat(e.target.value) || 0 })); setSettingsSaved(false) }}
                 />
 
@@ -644,11 +789,17 @@ export default function App() {
                         <tr key={i}>
                           {['from_year','from_month','monthly','weekly'].map(f => (
                             <td key={f} style={S.td}>
-                              <input style={S.inputSm} type="number" value={c[f]} onChange={e => updateCeiling(i, f, e.target.value)} />
+                              <input
+                                style={withLockedInputStyle(S.inputSm, !calcSettingsUnlocked)}
+                                type="number"
+                                value={c[f]}
+                                disabled={!calcSettingsUnlocked}
+                                onChange={e => updateCeiling(i, f, e.target.value)}
+                              />
                             </td>
                           ))}
                           <td style={S.tdRemove}>
-                            <button style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, opacity: 0.35, padding: 2 }} onClick={() => removeCeiling(i)}>×</button>
+                            <button style={{ border: 'none', background: 'none', cursor: calcSettingsUnlocked ? 'pointer' : 'not-allowed', fontSize: 16, opacity: 0.35, padding: 2 }} onClick={() => calcSettingsUnlocked && removeCeiling(i)} disabled={!calcSettingsUnlocked}>×</button>
                           </td>
                         </tr>
                       ))}
@@ -656,7 +807,7 @@ export default function App() {
                   </table>
                 </div>
                 <div style={{ marginTop: 8 }}>
-                  <button style={S.pillSmWhite} onClick={addCeiling}>+ Add row</button>
+                  <button style={withDisabled(S.pillSmWhite, !calcSettingsUnlocked)} onClick={addCeiling} disabled={!calcSettingsUnlocked}>+ Add row</button>
                 </div>
 
                 <div style={{ ...S.sectionLabel, marginTop: 20 }}>Contribution rates (%)</div>
@@ -672,11 +823,18 @@ export default function App() {
                         <tr key={i}>
                           {['from_year','from_month','employer_pct','employee_pct'].map(f => (
                             <td key={f} style={S.td}>
-                              <input style={S.inputSm} type="number" step={f.endsWith('pct') ? '0.1' : '1'} value={r[f]} onChange={e => updateRate(i, f, e.target.value)} />
+                              <input
+                                style={withLockedInputStyle(S.inputSm, !calcSettingsUnlocked)}
+                                type="number"
+                                step={f.endsWith('pct') ? '0.1' : '1'}
+                                value={r[f]}
+                                disabled={!calcSettingsUnlocked}
+                                onChange={e => updateRate(i, f, e.target.value)}
+                              />
                             </td>
                           ))}
                           <td style={S.tdRemove}>
-                            <button style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, opacity: 0.35, padding: 2 }} onClick={() => removeRate(i)}>×</button>
+                            <button style={{ border: 'none', background: 'none', cursor: calcSettingsUnlocked ? 'pointer' : 'not-allowed', fontSize: 16, opacity: 0.35, padding: 2 }} onClick={() => calcSettingsUnlocked && removeRate(i)} disabled={!calcSettingsUnlocked}>×</button>
                           </td>
                         </tr>
                       ))}
@@ -684,7 +842,7 @@ export default function App() {
                   </table>
                 </div>
                 <div style={{ marginTop: 8 }}>
-                  <button style={S.pillSmWhite} onClick={addRate}>+ Add row</button>
+                  <button style={withDisabled(S.pillSmWhite, !calcSettingsUnlocked)} onClick={addRate} disabled={!calcSettingsUnlocked}>+ Add row</button>
                 </div>
               </>
             )}
@@ -748,6 +906,22 @@ export default function App() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={!!confirmState}
+        title={confirmState?.title ?? ''}
+        body={confirmState?.body ?? ''}
+        confirmLabel={confirmState?.confirmLabel ?? 'Confirm'}
+        cancelLabel={confirmState?.cancelLabel ?? 'Cancel'}
+        onCancel={() => {
+          confirmState?.resolve(false)
+          setConfirmState(null)
+        }}
+        onConfirm={() => {
+          confirmState?.resolve(true)
+          setConfirmState(null)
+        }}
+      />
     </div>
   )
 }

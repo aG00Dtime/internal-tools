@@ -34,6 +34,8 @@ DEFAULT_CONTRIBUTION_RATES = [
 ]
 
 DEFAULT_OVER60_EMPLOYER_PCT = 1.5
+DEFAULT_DEFAULT_EMPLOYER_NAME = ""
+DEFAULT_DEFAULT_REG_NO = ""
 
 
 def connect(db_path: Path) -> sqlite3.Connection:
@@ -158,4 +160,39 @@ def replace_settings(conn: sqlite3.Connection, settings: dict) -> None:
         upsert("over60EmployerPct", str(over60))
         upsert("defaultEmployerName", default_employer_name)
         upsert("defaultRegNo", default_reg_no)
+
+
+def reset_default_employer_info(conn: sqlite3.Connection) -> None:
+    def upsert(key: str, value: str) -> None:
+        conn.execute(
+            "INSERT INTO app_settings(key, value) VALUES(?, ?) "
+            "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            (key, value),
+        )
+
+    with conn:
+        upsert("defaultEmployerName", DEFAULT_DEFAULT_EMPLOYER_NAME)
+        upsert("defaultRegNo", DEFAULT_DEFAULT_REG_NO)
+
+
+def reset_calculation_settings(conn: sqlite3.Connection) -> None:
+    def upsert(key: str, value: str) -> None:
+        conn.execute(
+            "INSERT INTO app_settings(key, value) VALUES(?, ?) "
+            "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+            (key, value),
+        )
+
+    with conn:
+        conn.execute("DELETE FROM wage_ceilings")
+        conn.execute("DELETE FROM contribution_rates")
+        conn.executemany(
+            "INSERT INTO wage_ceilings(from_year, from_month, monthly, weekly) VALUES (?, ?, ?, ?)",
+            DEFAULT_WAGE_CEILINGS,
+        )
+        conn.executemany(
+            "INSERT INTO contribution_rates(from_year, from_month, employer_pct, employee_pct) VALUES (?, ?, ?, ?)",
+            DEFAULT_CONTRIBUTION_RATES,
+        )
+        upsert("over60EmployerPct", str(DEFAULT_OVER60_EMPLOYER_PCT))
 

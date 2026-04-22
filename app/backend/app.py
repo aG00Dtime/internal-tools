@@ -7,7 +7,15 @@ from pathlib import Path
 from flask import Flask, jsonify, make_response, request
 from flask_cors import CORS
 
-from db import DbPaths, connect, get_settings, init_db, replace_settings
+from db import (
+    DbPaths,
+    connect,
+    get_settings,
+    init_db,
+    replace_settings,
+    reset_calculation_settings,
+    reset_default_employer_info,
+)
 from nis_format import Header, build_filename, generate_lines
 from xls_export import build_xls_bytes
 
@@ -34,6 +42,18 @@ def create_app() -> Flask:
         payload = request.get_json(force=True)
         with connect(paths.db_path) as conn:
             replace_settings(conn, payload)
+            return jsonify(get_settings(conn))
+
+    @app.post("/api/settings/reset-default-employer-info")
+    def api_reset_default_employer_info():
+        with connect(paths.db_path) as conn:
+            reset_default_employer_info(conn)
+            return jsonify(get_settings(conn))
+
+    @app.post("/api/settings/reset-calculation-defaults")
+    def api_reset_calculation_defaults():
+        with connect(paths.db_path) as conn:
+            reset_calculation_settings(conn)
             return jsonify(get_settings(conn))
 
     @app.post("/api/generate")
