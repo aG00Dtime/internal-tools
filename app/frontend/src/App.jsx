@@ -2,6 +2,39 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 // ── Calculation helpers ──────────────────────────────────────────────────────
 
+const TERMS_ACCEPT_KEY = 'nis_terms_accepted_v1'
+
+function getCookie(name) {
+  const parts = String(document.cookie || '').split('; ')
+  for (const part of parts) {
+    const eq = part.indexOf('=')
+    if (eq < 0) continue
+    const k = decodeURIComponent(part.slice(0, eq))
+    if (k !== name) continue
+    return decodeURIComponent(part.slice(eq + 1))
+  }
+  return null
+}
+
+function setCookie(name, value, { maxAgeSeconds = 60 * 60 * 24 * 365, path = '/' } = {}) {
+  const secure = typeof window !== 'undefined' && window.location?.protocol === 'https:' ? '; Secure' : ''
+  document.cookie =
+    `${encodeURIComponent(name)}=${encodeURIComponent(value)}; Path=${path}; Max-Age=${maxAgeSeconds}; SameSite=Lax${secure}`
+}
+
+function hasAcceptedTerms() {
+  try {
+    if (getCookie(TERMS_ACCEPT_KEY) === '1') return true
+  } catch {
+    // ignore
+  }
+  try {
+    return window.localStorage.getItem(TERMS_ACCEPT_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 // VBA Round() is banker's rounding (round-half-to-even)
 function bankersRound(x) {
   const floor = Math.floor(x)
@@ -233,7 +266,7 @@ export default function App() {
   const [settingsSaving, setSettingsSaving] = useState(false)
   const [settingsSaved, setSettingsSaved] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-  const [showDisclaimer, setShowDisclaimer] = useState(false)
+  const [showDisclaimer, setShowDisclaimer] = useState(() => !hasAcceptedTerms())
   const [calcSettingsUnlocked, setCalcSettingsUnlocked] = useState(false)
   const [confirmState, setConfirmState] = useState(null)
 
@@ -845,7 +878,6 @@ export default function App() {
       {/* ── Disclaimer / Terms modal ── */}
       {showDisclaimer && (
         <div
-          onClick={() => setShowDisclaimer(false)}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 220, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '48px 16px', overflowY: 'auto' }}
         >
           <div
@@ -854,7 +886,6 @@ export default function App() {
           >
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
               <div style={S.mono}>Disclaimer / Terms of Use</div>
-              <button onClick={() => setShowDisclaimer(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 22, lineHeight: 1, opacity: 0.5, padding: '0 4px' }}>×</button>
             </div>
 
             <div style={{ fontSize: 13, lineHeight: 1.5 }}>
@@ -893,7 +924,24 @@ export default function App() {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 18 }}>
-              <button style={S.pill} onClick={() => setShowDisclaimer(false)}>I Understand</button>
+              <button
+                style={S.pill}
+                onClick={() => {
+                  try {
+                    setCookie(TERMS_ACCEPT_KEY, '1')
+                  } catch {
+                    // ignore
+                  }
+                  try {
+                    window.localStorage.setItem(TERMS_ACCEPT_KEY, '1')
+                  } catch {
+                    // ignore
+                  }
+                  setShowDisclaimer(false)
+                }}
+              >
+                I Understand
+              </button>
             </div>
           </div>
         </div>
