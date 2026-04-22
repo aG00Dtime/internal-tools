@@ -2,6 +2,7 @@ services:
   backend:
     build:
       context: ./app/backend
+    restart: unless-stopped
     environment:
       - PORT=5055
     volumes:
@@ -12,6 +13,7 @@ services:
   web:
     build:
       context: ./app/frontend
+    restart: unless-stopped
     depends_on:
       - backend
     ports:

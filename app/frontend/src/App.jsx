@@ -405,11 +405,6 @@ export default function App() {
     return downloadFromApi('/api/generate')
   }
 
-  // Export Excel (XLS)
-  async function onExportXls() {
-    return downloadFromApi('/api/generate-xls')
-  }
-
   // Settings mutations
   function updateCeiling(idx, field, raw) {
     if (!calcSettingsUnlocked) return
@@ -660,9 +655,6 @@ export default function App() {
             }
             <button style={withDisabled(S.pill, busy || !periods[0])} onClick={onGenerate} disabled={busy || !periods[0]}>
               {busy ? 'Generating…' : 'Generate file'}
-            </button>
-            <button style={withDisabled(S.pillWhite, busy || !periods[0])} onClick={onExportXls} disabled={busy || !periods[0]}>
-              Export Excel (.xls)
             </button>
           </div>
         </div>
