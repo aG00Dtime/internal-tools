@@ -1,0 +1,15 @@
+**/.DS_Store
+**/.venv
+**/__pycache__
+**/*.pyc
+**/node_modules
+**/dist
+**/.vite
+**/.cache
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/*.log
+**/terminals
+**/agent-transcripts
+

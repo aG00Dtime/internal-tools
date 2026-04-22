@@ -1,0 +1,25 @@
+:root {
+  --black: #000000;
+  --white: #ffffff;
+  --parchment: #f5f4ed;
+
+  font-family: system-ui, -apple-system, SF Pro Display, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  color: var(--black);
+  background: var(--parchment);
+}
+
+body {
+  margin: 0;
+  background: var(--parchment);
+  color: var(--black);
+}
+
+#root {
+  min-height: 100svh;
+  display: flex;
+}

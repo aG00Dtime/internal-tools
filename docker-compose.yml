@@ -1,0 +1,22 @@
+services:
+  backend:
+    build:
+      context: ./app/backend
+    environment:
+      - PORT=5055
+    volumes:
+      - nis_data:/app/data
+    ports:
+      - "5055:5055"
+
+  web:
+    build:
+      context: ./app/frontend
+    depends_on:
+      - backend
+    ports:
+      - "6789:8080"
+
+volumes:
+  nis_data:
+
