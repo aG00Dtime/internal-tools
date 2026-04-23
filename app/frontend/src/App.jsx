@@ -322,9 +322,12 @@ export default function App() {
         const s = bridge
           ? await bridge.getSettings()
           : await apiJson('/api/settings', undefined, apiBase)
-        setSettings(s)
-        if (s.defaultEmployerName) setEmployerName(n => n || s.defaultEmployerName)
-        if (s.defaultRegNo) setHeader(h => ({ ...h, regNoRaw: h.regNoRaw || s.defaultRegNo }))
+        const normalized = { ...s, defaultRegNo: (s.defaultRegNo || '').slice(0, 6) }
+        setSettings(normalized)
+        if (normalized.defaultEmployerName) setEmployerName(n => n || normalized.defaultEmployerName)
+        if (normalized.defaultRegNo) {
+          setHeader(h => ({ ...h, regNoRaw: (h.regNoRaw || normalized.defaultRegNo).slice(0, 6) }))
+        }
       } catch (e) {
         setSettingsErr(String(e?.message ?? e))
       }
@@ -445,15 +448,22 @@ export default function App() {
         sequence: 1,
       }
       let filename = 'nis.txt'
-      let blob
       if (bridge) {
-        const generated = path === '/api/generate-xls'
-          ? await bridge.generateXls(payload)
-          : await bridge.generateTxt(payload)
-        filename = generated?.filename || filename
-        const bytes = base64ToUint8Array(generated?.contentBase64 || '')
-        blob = new Blob([bytes], { type: generated?.contentType || 'application/octet-stream' })
+        let result
+        try {
+          result = path === '/api/generate-xls'
+            ? await bridge.generateXls(payload)
+            : await bridge.generateTxt(payload)
+        } catch (e) {
+          setExportHint(String(e?.message ?? e))
+          return
+        }
+        if (!result?.saved) {
+          if (result?.error) setExportHint(result.error)
+          return
+        }
       } else {
+        let blob
         const res = await fetch(buildApiUrl(apiBase, path), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -462,15 +472,15 @@ export default function App() {
         if (!res.ok) throw new Error(`Generate failed (HTTP ${res.status})`)
         blob = await res.blob()
         filename = res.headers.get('content-disposition')?.match(/filename="?([^"]+)"?/)?.[1] ?? filename
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        URL.revokeObjectURL(url)
       }
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
     } finally {
       setBusy(false)
     }
@@ -570,7 +580,15 @@ export default function App() {
           </div>
           <div>
             <label style={S.label}>Registration #</label>
-            <input style={S.input} value={header.regNoRaw} onChange={e => setHeader(h => ({ ...h, regNoRaw: e.target.value }))} placeholder="123456" />
+            <input
+              style={S.input}
+              value={header.regNoRaw}
+              onChange={e => setHeader(h => ({ ...h, regNoRaw: e.target.value.slice(0, 6) }))}
+              placeholder="123456"
+              maxLength={6}
+              autoComplete="off"
+              title="NIS file format: up to 6 characters"
+            />
           </div>
           <div>
             <label style={S.label}>Year</label>
@@ -781,9 +799,12 @@ export default function App() {
                     <label style={S.label}>Registration number</label>
                     <input
                       style={S.settingsInputNarrow}
-                      placeholder="Optional — auto-fills the form"
+                      placeholder="Up to 6 chars (NIS format)"
                       value={settings.defaultRegNo}
-                      onChange={e => { setSettings(s => ({ ...s, defaultRegNo: e.target.value })); setSettingsSaved(false) }}
+                      onChange={e => { setSettings(s => ({ ...s, defaultRegNo: e.target.value.slice(0, 6) })); setSettingsSaved(false) }}
+                      maxLength={6}
+                      autoComplete="off"
+                      title="NIS .txt layout: maximum 6 characters"
                     />
                   </div>
                 </div>

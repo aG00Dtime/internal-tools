@@ -8,6 +8,9 @@ const { spawn } = require('child_process')
 /** @type {{ dbPath: string | null }} */
 const desktopContext = { dbPath: null }
 
+/** @type {import('electron').BrowserWindow | null} */
+let mainWindow = null
+
 function backendBinaryName() {
   return process.platform === 'win32' ? 'nis-backend-cli.exe' : 'nis-backend-cli'
 }
@@ -88,6 +91,10 @@ async function createWindow() {
       nodeIntegration: false,
     },
   })
+  mainWindow = win
+  win.on('closed', () => {
+    if (mainWindow === win) mainWindow = null
+  })
 
   if (app.isPackaged) {
     await win.loadFile(path.join(__dirname, 'renderer', 'index.html'))
@@ -110,8 +117,40 @@ ipcMain.handle('nis:settings:reset-calculation-defaults', async () => {
   const result = await runBackendCommand('settings-reset-calculation-defaults')
   return result.settings
 })
-ipcMain.handle('nis:generate:txt', async (_event, payload) => runBackendCommand('generate-txt', payload))
-ipcMain.handle('nis:generate:xls', async (_event, payload) => runBackendCommand('generate-xls', payload))
+ipcMain.handle('nis:generate:txt', async (_event, payload) => {
+  const result = await runBackendCommand('generate-txt', payload)
+  return saveGeneratedFile(result)
+})
+ipcMain.handle('nis:generate:xls', async (_event, payload) => {
+  const result = await runBackendCommand('generate-xls', payload)
+  return saveGeneratedFile(result)
+})
+
+async function saveGeneratedFile(result) {
+  const defaultName = path.basename(result?.filename || 'nis-schedule.txt')
+  const parent = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null
+  const saveOpts = {
+    title: 'Save Generated File',
+    defaultPath: path.join(app.getPath('documents'), defaultName),
+    buttonLabel: 'Save',
+  }
+  try {
+    const { filePath, canceled } = parent
+      ? await dialog.showSaveDialog(parent, saveOpts)
+      : await dialog.showSaveDialog(saveOpts)
+    if (canceled || !filePath) return { saved: false }
+    const b64 = result?.contentBase64
+    if (typeof b64 !== 'string' || !b64.length) {
+      return { saved: false, error: 'Backend returned no file content.' }
+    }
+    const buf = Buffer.from(b64, 'base64')
+    fs.writeFileSync(filePath, buf)
+    return { saved: true, filePath }
+  } catch (e) {
+    console.error('saveGeneratedFile', e)
+    return { saved: false, error: String(e?.message ?? e) }
+  }
+}
 
 app.whenReady().then(async () => {
   try {
@@ -135,5 +174,5 @@ app.whenReady().then(async () => {
 })
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
+  app.quit()
 })

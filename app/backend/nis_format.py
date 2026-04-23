@@ -122,7 +122,12 @@ def generate_lines(
     period_dates: list[Any],
     employees: Iterable[dict],
 ) -> list[str]:
-    regno = lpad(str(header.reg_no_raw), "0", 6)
+    reg_raw = str(header.reg_no_raw or "").strip()
+    if len(reg_raw) > 6:
+        raise ValueError(
+            "Employer registration number must be at most 6 characters (NIS fixed-width record)."
+        )
+    regno = lpad(reg_raw, "0", 6)
     cont_year = str(header.contribution_year)
     cont_month = month_name_to_number(header.contribution_month_name)
     sched = (header.schedule_type or "")[:1].upper()

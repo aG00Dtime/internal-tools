@@ -9,18 +9,21 @@
     "build:renderer": "npm --prefix ../frontend ci && npm --prefix ../frontend run build && npm run copy-renderer",
     "build:backend": "bash ./scripts/build-backend.sh",
     "pack": "npm run build:renderer && npm run build:backend && electron-builder --dir",
-    "dist": "npm run build:renderer && npm run build:backend && electron-builder",
+    "dist": "bash ./scripts/dist.sh",
     "dev": "electron ."
   },
-  "dependencies": {},
   "devDependencies": {
+    "@electron/notarize": "^3.1.1",
+    "dotenv": "^17.4.2",
     "electron": "^33.4.11",
     "electron-builder": "^25.1.8"
   },
   "build": {
+    "forceCodeSigning": false,
     "appId": "com.v75.internal.nis-electronic-schedule",
     "productName": "NIS Electronic Schedule",
-    "copyright": "Copyright \u00a9 V75 Internal",
+    "copyright": "Copyright © V75 Internal",
+    "afterSign": "scripts/notarize.cjs",
     "directories": {
       "output": "release"
     },
@@ -40,7 +43,9 @@
       }
     ],
     "mac": {
+      "forceCodeSigning": false,
       "category": "public.app-category.business",
+      "icon": "assets/icon.icns",
       "target": [
         "dmg",
         "zip"
