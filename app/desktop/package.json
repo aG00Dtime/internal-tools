@@ -1,0 +1,61 @@
+{
+  "name": "nis-electronic-schedule-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Offline Electron shell for V75 Internal NIS Electronic Schedule",
+  "main": "electron-main.cjs",
+  "scripts": {
+    "copy-renderer": "node ./scripts/copy-renderer.cjs",
+    "build:renderer": "npm --prefix ../frontend ci && npm --prefix ../frontend run build && npm run copy-renderer",
+    "build:backend": "bash ./scripts/build-backend.sh",
+    "pack": "npm run build:renderer && npm run build:backend && electron-builder --dir",
+    "dist": "npm run build:renderer && npm run build:backend && electron-builder",
+    "dev": "electron ."
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.v75.internal.nis-electronic-schedule",
+    "productName": "NIS Electronic Schedule",
+    "copyright": "Copyright \u00a9 V75 Internal",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron-main.cjs",
+      "preload.cjs",
+      "package.json",
+      "renderer/**"
+    ],
+    "extraResources": [
+      {
+        "from": "bundle/backend",
+        "to": "backend",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.business",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    }
+  }
+}

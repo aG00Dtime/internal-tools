@@ -1,3 +1,4 @@
+import os
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
@@ -9,7 +10,15 @@ class DbPaths:
 
     @property
     def db_path(self) -> Path:
-        return self.root_dir / "nis.sqlite3"
+        """SQLite path.
+
+        If ``NIS_DB_PATH`` is set (absolute or relative path), it is used and parent dirs are
+        created on init. Otherwise defaults to ``<backend_dir>/nis.sqlite3``.
+        """
+        raw = os.environ.get("NIS_DB_PATH")
+        if raw:
+            return Path(os.path.expandvars(os.path.expanduser(raw))).resolve()
+        return (self.root_dir / "nis.sqlite3").resolve()
 
 
 DEFAULT_WAGE_CEILINGS = [

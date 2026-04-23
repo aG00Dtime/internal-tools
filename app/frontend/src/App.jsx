@@ -100,6 +100,13 @@ function newEmployee() {
   return { id: ++_id, over60: 'No', ssn: '', surname: '', firstname: '', wages: ['','','','',''], weeksWorked: '' }
 }
 
+function base64ToUint8Array(base64) {
+  const binary = atob(base64)
+  const out = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i += 1) out[i] = binary.charCodeAt(i)
+  return out
+}
+
 // ── Styles ───────────────────────────────────────────────────────────────────
 
 const C = {
@@ -231,16 +238,39 @@ function useDashedFocus() {
   }, [])
 }
 
-async function apiJson(path, init) {
-  const res = await fetch(path, init)
+/** @param {string} apiBase */
+function buildApiUrl(apiBase, path) {
+  const envBase =
+    typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE
+      ? String(import.meta.env.VITE_API_BASE).replace(/\/$/, '')
+      : ''
+  const base = (apiBase || envBase || '').replace(/\/$/, '')
+  if (!base) return path
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`
+}
+
+/** @param {string} apiBase */
+async function apiJson(path, init, apiBase) {
+  const res = await fetch(buildApiUrl(apiBase, path), init)
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()
+}
+
+/** Desktop bridge (no HTTP API) + browser fallback config. */
+function useDesktopBridge() {
+  const viteBase =
+    typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE
+      ? String(import.meta.env.VITE_API_BASE)
+      : ''
+  const bridge = typeof window !== 'undefined' ? (window.nisElectron || null) : null
+  return { bridge, apiBase: viteBase }
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
   useDashedFocus()
+  const { bridge, apiBase } = useDesktopBridge()
 
   // Header
   const [employerName, setEmployerName] = useState('')
@@ -289,7 +319,9 @@ export default function App() {
   useEffect(() => {
     ;(async () => {
       try {
-        const s = await apiJson('/api/settings')
+        const s = bridge
+          ? await bridge.getSettings()
+          : await apiJson('/api/settings', undefined, apiBase)
         setSettings(s)
         if (s.defaultEmployerName) setEmployerName(n => n || s.defaultEmployerName)
         if (s.defaultRegNo) setHeader(h => ({ ...h, regNoRaw: h.regNoRaw || s.defaultRegNo }))
@@ -297,7 +329,7 @@ export default function App() {
         setSettingsErr(String(e?.message ?? e))
       }
     })()
-  }, [])
+  }, [apiBase, bridge])
 
   useEffect(() => {
     if (showSettings) setCalcSettingsUnlocked(false)
@@ -412,14 +444,25 @@ export default function App() {
         })),
         sequence: 1,
       }
-      const res = await fetch(path, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      if (!res.ok) throw new Error(`Generate failed (HTTP ${res.status})`)
-      const blob = await res.blob()
-      const filename = res.headers.get('content-disposition')?.match(/filename="?([^"]+)"?/)?.[1] ?? 'nis.txt'
+      let filename = 'nis.txt'
+      let blob
+      if (bridge) {
+        const generated = path === '/api/generate-xls'
+          ? await bridge.generateXls(payload)
+          : await bridge.generateTxt(payload)
+        filename = generated?.filename || filename
+        const bytes = base64ToUint8Array(generated?.contentBase64 || '')
+        blob = new Blob([bytes], { type: generated?.contentType || 'application/octet-stream' })
+      } else {
+        const res = await fetch(buildApiUrl(apiBase, path), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        if (!res.ok) throw new Error(`Generate failed (HTTP ${res.status})`)
+        blob = await res.blob()
+        filename = res.headers.get('content-disposition')?.match(/filename="?([^"]+)"?/)?.[1] ?? filename
+      }
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -481,11 +524,13 @@ export default function App() {
     setSettingsSaving(true)
     setSettingsSaved(false)
     try {
-      const updated = await apiJson('/api/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
-      })
+      const updated = bridge
+        ? await bridge.saveSettings(settings)
+        : await apiJson('/api/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(settings),
+          }, apiBase)
       setSettings(updated)
       setSettingsSaved(true)
     } catch (e) {
@@ -779,7 +824,9 @@ export default function App() {
                       })
                       if (!ok) return
                       try {
-                        const updated = await apiJson('/api/settings/reset-calculation-defaults', { method: 'POST' })
+                        const updated = bridge
+                          ? await bridge.resetCalculationDefaults()
+                          : await apiJson('/api/settings/reset-calculation-defaults', { method: 'POST' }, apiBase)
                         setSettings(updated)
                         setSettingsSaved(false)
                         setCalcSettingsUnlocked(false)
