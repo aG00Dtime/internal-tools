@@ -718,6 +718,11 @@ export default function App() {
   return (
     <div style={S.page}>
 
+      {/* ── App brand ── */}
+      <div style={{ marginBottom: 16 }}>
+        <h1 style={{ ...S.h1, fontSize: 22, letterSpacing: '0.5px', fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif', fontWeight: 700, textTransform: 'uppercase' }}>Internal Tools</h1>
+      </div>
+
       {/* ── App tab switcher ── */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, borderBottom: `1px solid ${C.borderCream}`, paddingBottom: 16 }}>
         <button
@@ -741,7 +746,7 @@ export default function App() {
           <div style={S.topRow}>
             <div>
               <div style={S.mono}>NIS</div>
-              <h1 style={S.h1}>V75 Internal NIS Electronic Schedule</h1>
+              <h1 style={S.h1}>NIS Electronic Schedule</h1>
               <div style={S.subtitle}>
                 Based on <span style={S.mono}>NIS_ELECTRONIC_SCHEDULE_2026_v2.0.xls</span> (Year: <span style={S.mono}>2026</span>, Version: <span style={S.mono}>v2.0</span>).
               </div>
