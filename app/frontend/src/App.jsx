@@ -184,7 +184,7 @@ const PAYE_COLS = [
   { key: 'lastName',           label: 'Last Name',        w: 120, t: 'text',   ph: 'DOE' },
   { key: 'firstName',          label: 'First Name',       w: 110, t: 'text',   ph: 'JANE' },
   { key: 'otherNames',         label: 'Other Names',      w: 110, t: 'text',   ph: '' },
-  { key: 'address',            label: 'Address',          w:  80, t: 'number', ph: '1', min: 1 },
+  { key: 'address',            label: 'Address',          w: 240, t: 'text',   ph: 'e.g. 12 Main St' },
   { key: 'payFrequency',       label: 'Pay Freq',         w: 110, t: 'select', opts: ['Daily', 'Weekly', 'Monthly'] },
   { key: 'periodEmployed',     label: 'Period',           w:  72, t: 'number', ph: '1', min: 1 },
   { key: 'employeeType',       label: 'Type',             w: 100, t: 'select', opts: ['Full-Time', 'Part-Time'] },
