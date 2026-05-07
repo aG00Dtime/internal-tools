@@ -1,0 +1,1 @@
+:root{--black:#000;--white:#fff;--parchment:#f5f4ed;font-synthesis:none;text-rendering:optimizelegibility;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;color:var(--black);background:var(--parchment);font-family:system-ui,-apple-system,SF Pro Display,sans-serif}body{background:var(--parchment);color:var(--black);margin:0}#root{min-height:100svh;display:flex}
