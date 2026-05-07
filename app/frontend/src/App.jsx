@@ -228,22 +228,27 @@ const PAYE_COLS = [
   { key: 'childDeclarationNo', label: 'Child Decl #',     w: 100, t: 'text',   ph: '' },
 ]
 
-// ── Styles ───────────────────────────────────────────────────────────────────
+// ── Design tokens ─────────────────────────────────────────────────────────────
 
 const C = {
-  nearBlack: '#141413',
-  parchment: '#f5f4ed',
-  ivory: '#faf9f5',
-  white: '#ffffff',
-  warmSand: '#e8e6dc',
-  borderCream: '#f0eee6',
-  ringWarm: '#d1cfc5',
-  oliveGray: '#5e5d59',
-  stoneGray: '#87867f',
-  terracotta: '#c96442',
-  focusBlue: '#3898ec',
-  darkSurface: '#30302e',
+  canvas: '#ffffff',
+  surfaceCard: '#f5f5f5',
+  surfaceSoft: '#f8f9fa',
+  surfaceStrong: '#e5e7eb',
+  surfaceDark: '#101010',
+  hairline: '#e5e7eb',
+  ink: '#111111',
+  body: '#374151',
+  muted: '#6b7280',
+  mutedSoft: '#898989',
+  primary: '#111111',
+  primaryActive: '#242424',
+  accent: '#3b82f6',
+  error: '#ef4444',
+  success: '#10b981',
 }
+
+const FONT = 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
 
 const S = {
   page: {
@@ -252,48 +257,60 @@ const S = {
     margin: 0,
     padding: '24px 24px 80px',
     boxSizing: 'border-box',
-    color: C.nearBlack,
-    background: C.parchment,
-    fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif',
-    letterSpacing: '-0.14px',
+    color: C.ink,
+    background: C.canvas,
+    fontFamily: FONT,
   },
-  topRow: { display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 20 },
-  h1: { margin: 0, fontSize: 32, fontWeight: 500, lineHeight: 1.15, letterSpacing: '-0.26px', fontFamily: 'Georgia, Times, serif' },
-  subtitle: { marginTop: 6, fontSize: 14, color: C.oliveGray, lineHeight: 1.5, maxWidth: 820 },
-  mono: { fontFamily: 'ui-monospace, SF Mono, Menlo, monospace', textTransform: 'uppercase', letterSpacing: '0.54px', fontSize: 12 },
-  card: { background: C.ivory, border: `1px solid ${C.borderCream}`, borderRadius: 12, padding: 20, marginTop: 16, boxShadow: 'rgba(0,0,0,0.05) 0px 4px 24px' },
-  cardHead: { display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 12 },
-  headerFooterRow: { display: 'flex', justifyContent: 'flex-end', marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.borderCream}` },
+  topRow: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 20 },
+  h1: { margin: 0, fontSize: 28, fontWeight: 600, lineHeight: 1.2, letterSpacing: '-0.3px', fontFamily: FONT },
+  subtitle: { marginTop: 6, fontSize: 14, color: C.muted, lineHeight: 1.5 },
+  mono: { fontFamily: 'ui-monospace, SF Mono, Menlo, monospace', textTransform: 'uppercase', letterSpacing: '0.54px', fontSize: 11, color: C.muted },
+  card: { background: C.surfaceCard, border: `1px solid ${C.hairline}`, borderRadius: 12, padding: 20, marginTop: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' },
+  cardHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12 },
+  headerFooterRow: { display: 'flex', justifyContent: 'flex-end', marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.hairline}` },
   payableBox: { textAlign: 'right' },
   grid4: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 },
   grid5: { display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 12 },
-  label: { display: 'block', fontSize: 12, fontWeight: 500, letterSpacing: '0.3px', textTransform: 'uppercase', marginBottom: 6, color: C.stoneGray },
-  input: { width: '100%', boxSizing: 'border-box', border: `1px solid ${C.borderCream}`, borderRadius: 12, padding: '10px 12px', fontSize: 14, outline: 'none', background: C.white, color: C.nearBlack, boxShadow: `${C.white} 0px 0px 0px 0px, ${C.ringWarm} 0px 0px 0px 1px` },
-  inputSm: { width: '100%', boxSizing: 'border-box', border: `1px solid ${C.borderCream}`, borderRadius: 12, padding: '7px 10px', fontSize: 13, outline: 'none', background: C.white, fontFamily: 'inherit', color: C.nearBlack, boxShadow: `${C.white} 0px 0px 0px 0px, ${C.ringWarm} 0px 0px 0px 1px` },
-  inputCalc: { width: '100%', boxSizing: 'border-box', border: '1px solid transparent', borderRadius: 5, padding: '5px 7px', fontSize: 13, outline: 'none', background: 'transparent', color: '#000', fontFamily: 'inherit' },
-  pill: { borderRadius: 12, border: `1px solid ${C.terracotta}`, padding: '10px 16px', background: C.terracotta, color: C.ivory, cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', boxShadow: `${C.terracotta} 0px 0px 0px 0px, ${C.terracotta} 0px 0px 0px 1px` },
-  pillWhite: { borderRadius: 12, border: `1px solid ${C.borderCream}`, padding: '10px 16px', background: C.warmSand, color: C.nearBlack, cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', boxShadow: `${C.warmSand} 0px 0px 0px 0px, ${C.ringWarm} 0px 0px 0px 1px` },
-  pillSm: { borderRadius: 12, border: `1px solid ${C.borderCream}`, padding: '7px 12px', background: C.warmSand, color: C.nearBlack, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit', boxShadow: `${C.warmSand} 0px 0px 0px 0px, ${C.ringWarm} 0px 0px 0px 1px` },
-  pillSmWhite: { borderRadius: 12, border: `1px solid ${C.borderCream}`, padding: '7px 12px', background: C.white, color: C.nearBlack, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit', boxShadow: `${C.white} 0px 0px 0px 0px, ${C.ringWarm} 0px 0px 0px 1px` },
+  label: { display: 'block', fontSize: 12, fontWeight: 500, letterSpacing: '0.3px', textTransform: 'uppercase', marginBottom: 6, color: C.muted },
+  input: { width: '100%', boxSizing: 'border-box', border: `1px solid ${C.hairline}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, outline: 'none', background: C.canvas, color: C.ink, height: 40 },
+  inputSm: { width: '100%', boxSizing: 'border-box', border: `1px solid ${C.hairline}`, borderRadius: 8, padding: '7px 10px', fontSize: 13, outline: 'none', background: C.canvas, fontFamily: 'inherit', color: C.ink },
+  inputCalc: { width: '100%', boxSizing: 'border-box', border: '1px solid transparent', borderRadius: 5, padding: '5px 7px', fontSize: 13, outline: 'none', background: 'transparent', color: C.ink, fontFamily: 'inherit' },
+  pill: { borderRadius: 8, border: 'none', padding: '0 20px', background: C.primary, color: C.canvas, cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', fontWeight: 600, height: 40, display: 'inline-flex', alignItems: 'center' },
+  pillWhite: { borderRadius: 8, border: `1px solid ${C.hairline}`, padding: '0 16px', background: C.canvas, color: C.ink, cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', fontWeight: 500, height: 40, display: 'inline-flex', alignItems: 'center' },
+  pillSm: { borderRadius: 8, border: 'none', padding: '0 14px', background: C.primary, color: C.canvas, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', fontWeight: 600, height: 34, display: 'inline-flex', alignItems: 'center' },
+  pillSmWhite: { borderRadius: 8, border: `1px solid ${C.hairline}`, padding: '0 14px', background: C.canvas, color: C.ink, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', fontWeight: 500, height: 34, display: 'inline-flex', alignItems: 'center' },
   btnRow: { display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap', alignItems: 'center' },
   btnRowSplit: { display: 'flex', justifyContent: 'space-between', gap: 10, marginTop: 16, flexWrap: 'wrap', alignItems: 'center' },
   btnGroup: { display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' },
   tableWrap: { overflowX: 'auto', marginTop: 10 },
   table: { width: '100%', borderCollapse: 'collapse', fontSize: 13 },
-  th: { textAlign: 'left', fontSize: 10, fontWeight: 500, letterSpacing: '0.5px', textTransform: 'uppercase', borderBottom: `1px solid ${C.borderCream}`, padding: '0 8px 8px', whiteSpace: 'nowrap', color: C.stoneGray },
-  thCalc: { textAlign: 'right', fontSize: 10, fontWeight: 500, letterSpacing: '0.5px', textTransform: 'uppercase', borderBottom: `1px solid ${C.borderCream}`, padding: '0 8px 8px', whiteSpace: 'nowrap', color: C.stoneGray },
-  td: { padding: '6px 6px', verticalAlign: 'middle', borderBottom: `1px solid ${C.borderCream}` },
-  tdCalc: { padding: '6px 8px', verticalAlign: 'middle', borderBottom: `1px solid ${C.borderCream}`, textAlign: 'right', fontSize: 13, whiteSpace: 'nowrap' },
-  tdRemove: { padding: '6px 8px', verticalAlign: 'middle', borderBottom: `1px solid ${C.borderCream}`, textAlign: 'center' },
-  totalRow: { fontSize: 13, fontWeight: 600, borderTop: `1px solid ${C.borderCream}` },
-  totalLabel: { padding: '10px 8px', textAlign: 'right', fontSize: 12, color: C.oliveGray, whiteSpace: 'nowrap' },
+  th: { textAlign: 'left', fontSize: 10, fontWeight: 500, letterSpacing: '0.5px', textTransform: 'uppercase', borderBottom: `1px solid ${C.hairline}`, padding: '0 8px 8px', whiteSpace: 'nowrap', color: C.muted },
+  thCalc: { textAlign: 'right', fontSize: 10, fontWeight: 500, letterSpacing: '0.5px', textTransform: 'uppercase', borderBottom: `1px solid ${C.hairline}`, padding: '0 8px 8px', whiteSpace: 'nowrap', color: C.muted },
+  td: { padding: '6px 6px', verticalAlign: 'middle', borderBottom: `1px solid ${C.hairline}` },
+  tdCalc: { padding: '6px 8px', verticalAlign: 'middle', borderBottom: `1px solid ${C.hairline}`, textAlign: 'right', fontSize: 13, whiteSpace: 'nowrap' },
+  tdRemove: { padding: '6px 8px', verticalAlign: 'middle', borderBottom: `1px solid ${C.hairline}`, textAlign: 'center' },
+  totalRow: { fontSize: 13, fontWeight: 600, borderTop: `1px solid ${C.hairline}` },
+  totalLabel: { padding: '10px 8px', textAlign: 'right', fontSize: 12, color: C.muted, whiteSpace: 'nowrap' },
   totalVal: { padding: '10px 8px', textAlign: 'right', fontWeight: 600 },
-  payable: { fontSize: 20, fontWeight: 500, letterSpacing: '-0.2px', marginTop: 4, fontFamily: 'Georgia, Times, serif' },
-  sectionLabel: { fontSize: 12, fontWeight: 600, marginTop: 16, marginBottom: 6, color: C.oliveGray },
-  settingsInputNarrow: { boxSizing: 'border-box', border: `1px solid ${C.borderCream}`, borderRadius: 12, padding: '8px 10px', fontSize: 13, outline: 'none', width: '100%', fontFamily: 'inherit', background: C.white, boxShadow: `${C.white} 0px 0px 0px 0px, ${C.ringWarm} 0px 0px 0px 1px` },
+  payable: { fontSize: 20, fontWeight: 600, letterSpacing: '-0.2px', marginTop: 4 },
+  sectionLabel: { fontSize: 12, fontWeight: 600, marginTop: 16, marginBottom: 6, color: C.muted },
+  settingsInputNarrow: { boxSizing: 'border-box', border: `1px solid ${C.hairline}`, borderRadius: 8, padding: '8px 10px', fontSize: 13, outline: 'none', width: '100%', fontFamily: 'inherit', background: C.canvas, height: 38 },
   linkBtn: { border: 'none', background: 'none', cursor: 'pointer', padding: 0, fontSize: 12, textDecoration: 'underline', opacity: 0.7 },
-  inputError: { borderColor: '#b53333', boxShadow: '#ffffff 0px 0px 0px 0px, #b53333 0px 0px 0px 1px' },
-  fieldError: { fontSize: 11, color: '#b53333', marginTop: 3 },
+  inputError: { borderColor: C.error, boxShadow: `0 0 0 1px ${C.error}` },
+  fieldError: { fontSize: 11, color: C.error, marginTop: 3 },
+}
+
+// Nav-pill-group active / inactive tab styles
+const navPillActive = {
+  borderRadius: 9999, border: 'none', padding: '8px 16px',
+  background: C.canvas, color: C.ink, cursor: 'pointer', fontSize: 14,
+  fontFamily: FONT, fontWeight: 500, boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+  whiteSpace: 'nowrap',
+}
+const navPillInactive = {
+  borderRadius: 9999, border: 'none', padding: '8px 16px',
+  background: 'transparent', color: C.muted, cursor: 'pointer', fontSize: 14,
+  fontFamily: FONT, fontWeight: 500, whiteSpace: 'nowrap',
 }
 
 function withDisabled(style, disabled) {
@@ -307,7 +324,7 @@ function withLockedInputStyle(style, locked) {
     ...style,
     opacity: 0.55,
     cursor: 'not-allowed',
-    background: '#f3f2eb',
+    background: C.surfaceCard,
   }
 }
 
@@ -331,12 +348,12 @@ function ConfirmModal({ open, title, body, confirmLabel, cancelLabel, onConfirm,
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          background: C.ivory,
-          border: `1px solid ${C.borderCream}`,
+          background: C.canvas,
+          border: `1px solid ${C.hairline}`,
           borderRadius: 16,
           width: 'min(560px, 100%)',
           padding: 20,
-          boxShadow: 'rgba(0,0,0,0.12) 0px 12px 40px',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.12)',
         }}
       >
         <div style={{ ...S.mono, marginBottom: 10 }}>{title}</div>
@@ -350,12 +367,36 @@ function ConfirmModal({ open, title, body, confirmLabel, cancelLabel, onConfirm,
   )
 }
 
-// ── Focus style ───────────────────────────────────────────────────────────────
+// ── Focus style + responsive CSS ──────────────────────────────────────────────
 
 function useDashedFocus() {
   useEffect(() => {
     const style = document.createElement('style')
-    style.textContent = `:focus-visible { outline: 2px solid ${C.focusBlue}; outline-offset: 2px; } button,input,select { font: inherit; }`
+    style.textContent = `
+      :focus-visible { outline: 2px solid ${C.accent}; outline-offset: 2px; }
+      button, input, select { font: inherit; }
+
+      /* Responsive grids — mobile first (1-col), expand at breakpoints */
+      .it-grid-nis-header  { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; align-items: start; }
+      .it-grid-paye-header { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; align-items: start; }
+      .it-grid-settings-2  { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+      .it-summary-bar      { display: flex; gap: 20px; flex-wrap: wrap; }
+      .it-top-row          { display: flex; align-items: flex-start; justify-content: space-between; gap: 12; margin-bottom: 20px; }
+
+      @media (min-width: 640px) {
+        .it-grid-nis-header  { grid-template-columns: 2fr 1fr 1fr 1fr 1fr; align-items: start; }
+        .it-grid-paye-header { grid-template-columns: 2fr 1fr 1fr 1fr; align-items: start; }
+      }
+      @media (max-width: 639px) {
+        .it-page  { padding: 16px 12px 60px !important; }
+        .it-card  { padding: 14px !important; }
+        .it-top-row { flex-direction: column !important; align-items: flex-start !important; }
+        .it-top-row-actions { align-self: flex-start; margin-top: 8px; }
+        .it-btnrowsplit { flex-direction: column-reverse !important; align-items: stretch !important; }
+        .it-btnrowsplit .it-btngroup-right { width: 100%; justify-content: space-between; }
+        .it-navpill-wrapper { width: 100%; overflow-x: auto; }
+      }
+    `
     document.head.appendChild(style)
     return () => style.remove()
   }, [])
@@ -437,6 +478,7 @@ export default function App() {
   const [payeBusy, setPayeBusy] = useState(false)
   const [payeExportError, setPayeExportError] = useState('')
   const [payeTouched, setPayeTouched] = useState({})
+  const [payeExportAttempted, setPayeExportAttempted] = useState(false)
 
   // ── NIS effects & computed ─────────────────────────────────────────────────
 
@@ -680,10 +722,12 @@ export default function App() {
       setPayeEmployees([newPayeEmployee()])
       setPayeExportError('')
       setPayeTouched({})
+      setPayeExportAttempted(false)
     })()
   }
 
   async function onPayeExport() {
+    setPayeExportAttempted(true)
     const errors = []
     if (!payeCompanyName.trim()) errors.push('Agency/Company Name is required.')
     const tin = payeCompanyTin.trim()
@@ -736,34 +780,37 @@ export default function App() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div style={S.page}>
+    <div className="it-page" style={S.page}>
 
       {/* ── App brand ── */}
-      <div style={{ marginBottom: 16 }}>
-        <h1 style={{ ...S.h1, fontSize: 22, letterSpacing: '0.5px', fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif', fontWeight: 700, textTransform: 'uppercase' }}>Internal Tools</h1>
+      <div style={{ marginBottom: 4 }}>
+        <h1 style={{ margin: 0, fontSize: 18, fontWeight: 700, letterSpacing: '-0.04em', fontFamily: FONT, color: C.ink, textTransform: 'uppercase' }}>Internal Tools</h1>
       </div>
 
-      {/* ── App tab switcher ── */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20, borderBottom: `1px solid ${C.borderCream}`, paddingBottom: 16 }}>
-        <button
-          style={activeApp === 'nis' ? S.pillSm : S.pillSmWhite}
-          onClick={() => setActiveApp('nis')}
-        >
-          NIS Schedule
-        </button>
-        <button
-          style={activeApp === 'paye' ? S.pillSm : S.pillSmWhite}
-          onClick={() => setActiveApp('paye')}
-        >
-          PAYE
-        </button>
+      {/* ── Nav-pill-group tab switcher ── */}
+      <div className="it-navpill-wrapper" style={{ marginBottom: 20, marginTop: 12 }}>
+        <div style={{
+          display: 'inline-flex',
+          gap: 4,
+          background: C.surfaceSoft,
+          borderRadius: 9999,
+          padding: 5,
+          border: `1px solid ${C.hairline}`,
+        }}>
+          <button style={activeApp === 'nis' ? navPillActive : navPillInactive} onClick={() => setActiveApp('nis')}>
+            NIS Schedule
+          </button>
+          <button style={activeApp === 'paye' ? navPillActive : navPillInactive} onClick={() => setActiveApp('paye')}>
+            PAYE
+          </button>
+        </div>
       </div>
 
       {/* ════════════════════════════════ NIS SECTION ════════════════════════════════ */}
       {activeApp === 'nis' && (
         <>
           {/* ── Page title ── */}
-          <div style={S.topRow}>
+          <div className="it-top-row" style={S.topRow}>
             <div>
               <div style={S.mono}>NIS</div>
               <h1 style={S.h1}>NIS Electronic Schedule</h1>
@@ -771,17 +818,17 @@ export default function App() {
                 Based on <span style={S.mono}>NIS_ELECTRONIC_SCHEDULE_2026_v2.0.xls</span> (Year: <span style={S.mono}>2026</span>, Version: <span style={S.mono}>v2.0</span>).
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div className="it-top-row-actions" style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
               <button style={S.linkBtn} onClick={() => setShowDisclaimer(true)}>Disclaimer / Terms</button>
-              <button style={{ ...S.pillSmWhite, alignSelf: 'center' }} onClick={() => setShowSettings(true)}>Settings</button>
+              <button style={S.pillSmWhite} onClick={() => setShowSettings(true)}>Settings</button>
             </div>
           </div>
 
           {/* ── Schedule header ── */}
-          <div style={S.card}>
+          <div className="it-card" style={S.card}>
             <div style={S.mono}>Schedule Header</div>
             <div style={{ height: 12 }} />
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', gap: 12 }}>
+            <div className="it-grid-nis-header">
               <div>
                 <label style={S.label}>Employer Name</label>
                 <input style={S.input} value={employerName} onChange={e => setEmployerName(e.target.value)} placeholder="e.g. Acme Ltd" />
@@ -827,14 +874,14 @@ export default function App() {
                   ref={period1Ref}
                   style={{
                     ...S.input,
-                    ...(period1Required ? { borderColor: C.focusBlue, boxShadow: `${C.white} 0px 0px 0px 0px, ${C.focusBlue} 0px 0px 0px 2px` } : null),
+                    ...(period1Required ? { borderColor: C.accent, boxShadow: `0 0 0 2px ${C.accent}` } : null),
                   }}
                   type="date"
                   value={periods[0]}
                   onChange={e => onPeriod1Change(e.target.value)}
                 />
                 {period1Required && (
-                  <div style={{ marginTop: 6, fontSize: 12, color: C.oliveGray }}>
+                  <div style={{ marginTop: 6, fontSize: 12, color: C.muted }}>
                     Period 1 is required before generating files.
                   </div>
                 )}
@@ -856,7 +903,7 @@ export default function App() {
           </div>
 
           {/* ── Employee table ── */}
-          <div style={S.card}>
+          <div className="it-card" style={S.card}>
             <div style={S.cardHead}>
               <div style={S.mono}>Employees</div>
               <button style={S.pillSm} onClick={addEmployee}>+ Add employee</button>
@@ -947,14 +994,14 @@ export default function App() {
               </div>
             )}
 
-            <div style={S.btnRowSplit}>
+            <div className="it-btnrowsplit" style={S.btnRowSplit}>
               <div style={S.btnGroup}>
                 <button style={withDisabled(S.pillWhite, busy)} onClick={clearAll} disabled={busy}>Clear all</button>
               </div>
 
-              <div style={{ ...S.btnGroup, justifyContent: 'flex-end' }}>
+              <div className="it-btngroup-right" style={{ ...S.btnGroup, justifyContent: 'flex-end' }}>
                 {exportHint
-                  ? <span style={{ fontSize: 12, color: C.oliveGray, maxWidth: 520, textAlign: 'right' }}>{exportHint}</span>
+                  ? <span style={{ fontSize: 12, color: C.muted, maxWidth: 520, textAlign: 'right' }}>{exportHint}</span>
                   : (!periods[0] && <span style={{ fontSize: 12, opacity: 0.6 }}>Set a period date to generate</span>)
                 }
                 <button style={withDisabled(S.pill, busy || !periods[0])} onClick={onGenerate} disabled={busy || !periods[0]}>
@@ -970,7 +1017,7 @@ export default function App() {
       {activeApp === 'paye' && (
         <>
           {/* ── Page title ── */}
-          <div style={S.topRow}>
+          <div className="it-top-row" style={S.topRow}>
             <div>
               <div style={S.mono}>PAYE</div>
               <h1 style={S.h1}>PAYE File Generator</h1>
@@ -981,10 +1028,10 @@ export default function App() {
           </div>
 
           {/* ── Employer header ── */}
-          <div style={S.card}>
+          <div className="it-card" style={S.card}>
             <div style={S.mono}>Employer Information</div>
             <div style={{ height: 12 }} />
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 12 }}>
+            <div className="it-grid-paye-header">
               <div>
                 <label style={S.label}>Agency / Company Name</label>
                 <input
@@ -1039,7 +1086,7 @@ export default function App() {
             </div>
 
             {/* Summary bar */}
-            <div style={{ display: 'flex', gap: 32, marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.borderCream}`, flexWrap: 'wrap' }}>
+            <div className="it-summary-bar" style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.hairline}` }}>
               <div style={S.payableBox}>
                 <div style={S.mono}>Entries</div>
                 <div style={S.payable}>{payeEmployees.filter(e => e.lastName.trim()).length}</div>
@@ -1060,11 +1107,11 @@ export default function App() {
           </div>
 
           {/* ── Employee table ── */}
-          <div style={S.card}>
+          <div className="it-card" style={S.card}>
             <div style={S.cardHead}>
               <div>
                 <div style={S.mono}>Employees</div>
-                <div style={{ fontSize: 12, color: C.stoneGray, marginTop: 4 }}>
+                <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>
                   Columns marked ↩ are auto-calculated from other fields in the same row.
                 </div>
               </div>
@@ -1082,7 +1129,7 @@ export default function App() {
                           ...S.th,
                           width: col.w,
                           minWidth: col.w,
-                          ...(col.calc ? { color: C.terracotta } : {}),
+                          ...(col.calc ? { color: C.accent } : {}),
                         }}
                       >
                         {col.label}
@@ -1094,13 +1141,13 @@ export default function App() {
                 <tbody>
                   {payeEmployees.map((emp, rowIdx) => {
                     const calc = payeRowCalcs[rowIdx]
-                    const empErrs = payeEmpErrors(emp)
+                    const empErrs = payeExportAttempted ? payeEmpErrors(emp) : {}
                     return (
                       <tr key={emp.id}>
                         {PAYE_COLS.map(col => {
                           if (col.calc) {
                             return (
-                              <td key={col.key} style={{ ...S.tdCalc, background: '#faf4f0' }}>
+                              <td key={col.key} style={{ ...S.tdCalc, background: C.surfaceStrong }}>
                                 {fmtMoney(col.calc(calc))}
                               </td>
                             )
@@ -1150,13 +1197,13 @@ export default function App() {
               </table>
             </div>
 
-            <div style={S.btnRowSplit}>
+            <div className="it-btnrowsplit" style={S.btnRowSplit}>
               <div style={S.btnGroup}>
                 <button style={withDisabled(S.pillWhite, payeBusy)} onClick={clearPayeAll} disabled={payeBusy}>Clear all</button>
               </div>
-              <div style={{ ...S.btnGroup, justifyContent: 'flex-end' }}>
+              <div className="it-btngroup-right" style={{ ...S.btnGroup, justifyContent: 'flex-end' }}>
                 {payeExportError && (
-                  <span style={{ fontSize: 12, color: '#b53333', maxWidth: 520, textAlign: 'right', whiteSpace: 'pre-wrap' }}>
+                  <span style={{ fontSize: 12, color: C.error, maxWidth: 520, textAlign: 'right', whiteSpace: 'pre-wrap' }}>
                     {payeExportError}
                   </span>
                 )}
@@ -1177,13 +1224,13 @@ export default function App() {
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{ background: C.ivory, border: `1px solid ${C.borderCream}`, borderRadius: 16, width: 'min(680px, 100%)', padding: 24, boxShadow: 'rgba(0,0,0,0.05) 0px 4px 24px' }}
+            style={{ background: C.canvas, border: `1px solid ${C.hairline}`, borderRadius: 16, width: 'min(680px, 100%)', padding: 24, boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}
           >
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 20 }}>
               <div style={S.mono}>Settings</div>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                 {settingsSaved && <span style={{ fontSize: 12, opacity: 0.5 }}>Saved</span>}
-                {settingsErr && <span style={{ fontSize: 12, color: '#c00' }}>{settingsErr}</span>}
+                {settingsErr && <span style={{ fontSize: 12, color: C.error }}>{settingsErr}</span>}
                 {settings && (
                   <button style={S.pillSm} onClick={saveSettings} disabled={settingsSaving}>
                     {settingsSaving ? 'Saving…' : 'Save'}
@@ -1198,7 +1245,7 @@ export default function App() {
             {settings && (
               <>
                 <div style={S.sectionLabel}>Default employer info</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 4 }}>
+                <div className="it-grid-settings-2" style={{ marginBottom: 4 }}>
                   <div>
                     <label style={S.label}>Employer name</label>
                     <input
@@ -1363,7 +1410,7 @@ export default function App() {
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{ background: C.ivory, border: `1px solid ${C.borderCream}`, borderRadius: 16, width: 'min(760px, 100%)', padding: 24, boxShadow: 'rgba(0,0,0,0.05) 0px 4px 24px' }}
+            style={{ background: C.canvas, border: `1px solid ${C.hairline}`, borderRadius: 16, width: 'min(760px, 100%)', padding: 24, boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}
           >
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
               <div style={S.mono}>Disclaimer / Terms of Use</div>
