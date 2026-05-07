@@ -177,6 +177,22 @@ function calcPayeRow(emp) {
   return { adjusted7A, totalIncome, totalDeductions }
 }
 
+const PERIOD_RANGE = { Daily: [1, 366], Weekly: [1, 52], Monthly: [1, 12] }
+
+function payeEmpErrors(emp) {
+  const e = {}
+  if (!emp.lastName.trim()) e.lastName = 'Required'
+  const tin = emp.tin.trim()
+  if (tin && !/^\d{9}$/.test(tin)) e.tin = 'Must be exactly 9 digits'
+  if (emp.periodEmployed !== '') {
+    const period = Number(emp.periodEmployed)
+    const [lo, hi] = PERIOD_RANGE[emp.payFrequency] ?? [1, 366]
+    if (!Number.isInteger(period) || period < lo || period > hi)
+      e.periodEmployed = `${emp.payFrequency}: ${lo}–${hi}`
+  }
+  return e
+}
+
 // Column spec for PAYE table. calc: fn(rowCalc) for read-only calculated fields.
 const PAYE_COLS = [
   { key: 'tin',                label: 'TIN',              w: 110, t: 'text',   ph: '123456789' },
@@ -276,6 +292,8 @@ const S = {
   sectionLabel: { fontSize: 12, fontWeight: 600, marginTop: 16, marginBottom: 6, color: C.oliveGray },
   settingsInputNarrow: { boxSizing: 'border-box', border: `1px solid ${C.borderCream}`, borderRadius: 12, padding: '8px 10px', fontSize: 13, outline: 'none', width: '100%', fontFamily: 'inherit', background: C.white, boxShadow: `${C.white} 0px 0px 0px 0px, ${C.ringWarm} 0px 0px 0px 1px` },
   linkBtn: { border: 'none', background: 'none', cursor: 'pointer', padding: 0, fontSize: 12, textDecoration: 'underline', opacity: 0.7 },
+  inputError: { borderColor: '#b53333', boxShadow: '#ffffff 0px 0px 0px 0px, #b53333 0px 0px 0px 1px' },
+  fieldError: { fontSize: 11, color: '#b53333', marginTop: 3 },
 }
 
 function withDisabled(style, disabled) {
@@ -418,6 +436,7 @@ export default function App() {
   const [payeEmployees, setPayeEmployees] = useState([newPayeEmployee()])
   const [payeBusy, setPayeBusy] = useState(false)
   const [payeExportError, setPayeExportError] = useState('')
+  const [payeTouched, setPayeTouched] = useState({})
 
   // ── NIS effects & computed ─────────────────────────────────────────────────
 
@@ -660,6 +679,7 @@ export default function App() {
       setPayePeriod('')
       setPayeEmployees([newPayeEmployee()])
       setPayeExportError('')
+      setPayeTouched({})
     })()
   }
 
@@ -967,18 +987,31 @@ export default function App() {
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 12 }}>
               <div>
                 <label style={S.label}>Agency / Company Name</label>
-                <input style={S.input} value={payeCompanyName} onChange={e => setPayeCompanyName(e.target.value)} placeholder="e.g. Acme Ltd" />
+                <input
+                  style={{ ...S.input, ...(payeTouched.companyName && !payeCompanyName.trim() ? S.inputError : {}) }}
+                  value={payeCompanyName}
+                  onChange={e => setPayeCompanyName(e.target.value)}
+                  onBlur={() => setPayeTouched(t => ({ ...t, companyName: true }))}
+                  placeholder="e.g. Acme Ltd"
+                />
+                {payeTouched.companyName && !payeCompanyName.trim() && (
+                  <div style={S.fieldError}>Required</div>
+                )}
               </div>
               <div>
                 <label style={S.label}>Company TIN</label>
                 <input
-                  style={S.input}
+                  style={{ ...S.input, ...(payeTouched.companyTin && payeCompanyTin && payeCompanyTin.length !== 9 ? S.inputError : {}) }}
                   value={payeCompanyTin}
                   onChange={e => setPayeCompanyTin(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                  onBlur={() => setPayeTouched(t => ({ ...t, companyTin: true }))}
                   placeholder="123456789"
                   maxLength={9}
                   autoComplete="off"
                 />
+                {payeTouched.companyTin && payeCompanyTin && payeCompanyTin.length !== 9 && (
+                  <div style={S.fieldError}>Must be 9 digits</div>
+                )}
               </div>
               <div>
                 <label style={S.label}>Year</label>
@@ -1061,6 +1094,7 @@ export default function App() {
                 <tbody>
                   {payeEmployees.map((emp, rowIdx) => {
                     const calc = payeRowCalcs[rowIdx]
+                    const empErrs = payeEmpErrors(emp)
                     return (
                       <tr key={emp.id}>
                         {PAYE_COLS.map(col => {
@@ -1071,29 +1105,34 @@ export default function App() {
                               </td>
                             )
                           }
+                          const cellErr = empErrs[col.key]
                           if (col.t === 'select') {
                             return (
                               <td key={col.key} style={S.td}>
                                 <select
-                                  style={S.inputSm}
+                                  style={{ ...S.inputSm, ...(cellErr ? S.inputError : {}) }}
                                   value={emp[col.key]}
                                   onChange={e => updatePayeEmp(emp.id, { [col.key]: e.target.value })}
+                                  title={cellErr || ''}
                                 >
                                   {col.opts.map(o => <option key={o}>{o}</option>)}
                                 </select>
+                                {cellErr && <div style={S.fieldError}>{cellErr}</div>}
                               </td>
                             )
                           }
                           return (
                             <td key={col.key} style={S.td}>
                               <input
-                                style={S.inputSm}
+                                style={{ ...S.inputSm, ...(cellErr ? S.inputError : {}) }}
                                 type={col.t}
                                 min={col.min}
                                 value={emp[col.key]}
                                 onChange={e => updatePayeEmp(emp.id, { [col.key]: e.target.value })}
                                 placeholder={col.ph ?? ''}
+                                title={cellErr || ''}
                               />
+                              {cellErr && <div style={S.fieldError}>{cellErr}</div>}
                             </td>
                           )
                         })}
