@@ -1,8 +1,50 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { generateLines, generateFileBytes, buildFilename as nisBuildFilename } from './lib/nisFormat.js'
+import { generateCsv as payeGenerateCsv, buildFilename as payeBuildFilename } from './lib/payeFormat.js'
 
-// ── Calculation helpers ──────────────────────────────────────────────────────
+// ── Settings storage ─────────────────────────────────────────────────────────
 
 const TERMS_ACCEPT_KEY = 'nis_terms_accepted_v1'
+const SETTINGS_KEY = 'nis_settings_v1'
+
+const DEFAULT_SETTINGS = {
+  wageCeilings: [
+    { from_year: 2008, from_month: 3,  monthly: 113660, weekly: 26229 },
+    { from_year: 2010, from_month: 1,  monthly: 126504, weekly: 29193 },
+    { from_year: 2011, from_month: 3,  monthly: 132829, weekly: 30653 },
+    { from_year: 2012, from_month: 1,  monthly: 143455, weekly: 33105 },
+    { from_year: 2013, from_month: 3,  monthly: 150628, weekly: 34760 },
+    { from_year: 2014, from_month: 1,  monthly: 158159, weekly: 36498 },
+    { from_year: 2015, from_month: 1,  monthly: 170812, weekly: 39418 },
+    { from_year: 2015, from_month: 10, monthly: 200000, weekly: 46154 },
+    { from_year: 2017, from_month: 1,  monthly: 220000, weekly: 50769 },
+    { from_year: 2018, from_month: 1,  monthly: 240000, weekly: 55385 },
+    { from_year: 2019, from_month: 2,  monthly: 280000, weekly: 64615 },
+  ],
+  contributionRates: [
+    { from_year: 1900, from_month: 1, employer_pct: 7.8, employee_pct: 5.2 },
+    { from_year: 2013, from_month: 6, employer_pct: 8.4, employee_pct: 5.6 },
+  ],
+  over60EmployerPct: 1.5,
+  defaultEmployerName: '',
+  defaultRegNo: '',
+}
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch { /* ignore */ }
+  return null
+}
+
+function persistSettings(s) {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(s))
+  } catch { /* ignore */ }
+}
+
+// ── Calculation helpers ──────────────────────────────────────────────────────
 
 function getCookie(name) {
   const parts = String(document.cookie || '').split('; ')
@@ -98,13 +140,6 @@ const MONTH_NAMES = [
 let _id = 0
 function newEmployee() {
   return { id: ++_id, over60: 'No', ssn: '', surname: '', firstname: '', wages: ['','','','',''], weeksWorked: '' }
-}
-
-function base64ToUint8Array(base64) {
-  const binary = atob(base64)
-  const out = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i += 1) out[i] = binary.charCodeAt(i)
-  return out
 }
 
 // ── PAYE helpers ─────────────────────────────────────────────────────────────
@@ -308,39 +343,22 @@ function useDashedFocus() {
   }, [])
 }
 
-/** @param {string} apiBase */
-function buildApiUrl(apiBase, path) {
-  const envBase =
-    typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE
-      ? String(import.meta.env.VITE_API_BASE).replace(/\/$/, '')
-      : ''
-  const base = (apiBase || envBase || '').replace(/\/$/, '')
-  if (!base) return path
-  return `${base}${path.startsWith('/') ? path : `/${path}`}`
-}
-
-/** @param {string} apiBase */
-async function apiJson(path, init, apiBase) {
-  const res = await fetch(buildApiUrl(apiBase, path), init)
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
-}
-
-/** Desktop bridge (no HTTP API) + browser fallback config. */
-function useDesktopBridge() {
-  const viteBase =
-    typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE
-      ? String(import.meta.env.VITE_API_BASE)
-      : ''
-  const bridge = typeof window !== 'undefined' ? (window.nisElectron || null) : null
-  return { bridge, apiBase: viteBase }
+function triggerDownload(bytes, filename, mimeType) {
+  const blob = new Blob([bytes], { type: mimeType })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
   useDashedFocus()
-  const { bridge, apiBase } = useDesktopBridge()
 
   // ── App tab ──
   const [activeApp, setActiveApp] = useState('nis')
@@ -403,24 +421,17 @@ export default function App() {
 
   // ── NIS effects & computed ─────────────────────────────────────────────────
 
-  // Load settings and auto-fill defaults into empty form fields
+  // Load settings from localStorage, fall back to defaults
   useEffect(() => {
-    ;(async () => {
-      try {
-        const s = bridge
-          ? await bridge.getSettings()
-          : await apiJson('/api/settings', undefined, apiBase)
-        const normalized = { ...s, defaultRegNo: (s.defaultRegNo || '').slice(0, 6) }
-        setSettings(normalized)
-        if (normalized.defaultEmployerName) setEmployerName(n => n || normalized.defaultEmployerName)
-        if (normalized.defaultRegNo) {
-          setHeader(h => ({ ...h, regNoRaw: (h.regNoRaw || normalized.defaultRegNo).slice(0, 6) }))
-        }
-      } catch (e) {
-        setSettingsErr(String(e?.message ?? e))
-      }
-    })()
-  }, [apiBase, bridge])
+    const stored = loadSettings()
+    const s = stored ?? DEFAULT_SETTINGS
+    const normalized = { ...s, defaultRegNo: (s.defaultRegNo || '').slice(0, 6) }
+    setSettings(normalized)
+    if (normalized.defaultEmployerName) setEmployerName(n => n || normalized.defaultEmployerName)
+    if (normalized.defaultRegNo) {
+      setHeader(h => ({ ...h, regNoRaw: (h.regNoRaw || normalized.defaultRegNo).slice(0, 6) }))
+    }
+  }, [])
 
   useEffect(() => {
     if (showSettings) setCalcSettingsUnlocked(false)
@@ -445,7 +456,6 @@ export default function App() {
       setPeriods(p => [p[0], '', '', '', ''])
       setEmployees(emps => emps.map(e => ({ ...e, wages: [e.wages[0], '', '', '', ''], weeksWorked: '' })))
     } else {
-      // Auto-fill if period 1 is set
       if (periods[0]) {
         setPeriods([periods[0], addDays(periods[0], 7), addDays(periods[0], 14), addDays(periods[0], 21), addDays(periods[0], 28)])
       }
@@ -485,7 +495,6 @@ export default function App() {
 
   // ── NIS mutations ──────────────────────────────────────────────────────────
 
-  // Employee table mutations
   function updateEmp(id, patch) {
     setEmployees(emps => emps.map(e => e.id === id ? { ...e, ...patch } : e))
   }
@@ -519,7 +528,7 @@ export default function App() {
     })()
   }
 
-  async function downloadFromApi(path) {
+  async function onGenerate() {
     if (!periods[0]) {
       setPeriod1Required(true)
       setExportHint('Set Period 1 before generating files.')
@@ -534,64 +543,42 @@ export default function App() {
     setBusy(true)
     try {
       setExportHint('')
-      const payload = {
-        employerName,
-        header,
+      const employeePayload = employees.map((emp, i) => ({
+        over60: emp.over60,
+        ssn: emp.ssn,
+        surname: emp.surname,
+        firstname: emp.firstname,
+        wages: emp.wages.map(w => Number(w) || 0),
+        weeksWorked: emp.weeksWorked,
+        eeContribution: rowCalcs[i].ee,
+        erContribution: rowCalcs[i].er,
+      }))
+
+      const lines = generateLines({
+        header: {
+          regNoRaw: header.regNoRaw,
+          contributionYear: header.contributionYear,
+          contributionMonthName: header.contributionMonthName,
+          scheduleType: header.scheduleType,
+        },
         periodDates: periods,
-        employees: employees.map((emp, i) => ({
-          over60: emp.over60,
-          ssn: emp.ssn,
-          surname: emp.surname,
-          firstname: emp.firstname,
-          wages: emp.wages.map(w => Number(w) || 0),
-          weeksWorked: emp.weeksWorked,
-          eeContribution: rowCalcs[i].ee,
-          erContribution: rowCalcs[i].er,
-        })),
-        sequence: 1,
-      }
-      let filename = 'nis.txt'
-      if (bridge) {
-        let result
-        try {
-          result = path === '/api/generate-xls'
-            ? await bridge.generateXls(payload)
-            : await bridge.generateTxt(payload)
-        } catch (e) {
-          setExportHint(String(e?.message ?? e))
-          return
-        }
-        if (!result?.saved) {
-          if (result?.error) setExportHint(result.error)
-          return
-        }
-      } else {
-        let blob
-        const res = await fetch(buildApiUrl(apiBase, path), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-        if (!res.ok) throw new Error(`Generate failed (HTTP ${res.status})`)
-        blob = await res.blob()
-        filename = res.headers.get('content-disposition')?.match(/filename="?([^"]+)"?/)?.[1] ?? filename
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = filename
-        document.body.appendChild(a)
-        a.click()
-        a.remove()
-        URL.revokeObjectURL(url)
-      }
+        employees: employeePayload,
+      })
+
+      const bytes = generateFileBytes(lines)
+      const filename = nisBuildFilename(
+        header.regNoRaw,
+        header.contributionYear,
+        header.contributionMonthName,
+        header.scheduleType,
+        employees.length,
+      )
+      triggerDownload(bytes, filename, 'application/octet-stream')
+    } catch (e) {
+      setExportHint(String(e?.message ?? e))
     } finally {
       setBusy(false)
     }
-  }
-
-  // Generate file (TXT)
-  async function onGenerate() {
-    return downloadFromApi('/api/generate')
   }
 
   // Settings mutations
@@ -637,14 +624,7 @@ export default function App() {
     setSettingsSaving(true)
     setSettingsSaved(false)
     try {
-      const updated = bridge
-        ? await bridge.saveSettings(settings)
-        : await apiJson('/api/settings', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(settings),
-          }, apiBase)
-      setSettings(updated)
+      persistSettings(settings)
       setSettingsSaved(true)
     } catch (e) {
       setSettingsErr(String(e?.message ?? e))
@@ -714,45 +694,16 @@ export default function App() {
     setPayeExportError('')
     setPayeBusy(true)
     try {
-      const payload = {
-        companyName: payeCompanyName,
-        companyTin: payeCompanyTin,
-        companyAddress: payeCompanyAddress,
-        year: String(payeYear),
-        period: payePeriod,
-        employees: payeEmployees.map(emp => ({ ...emp })),
-      }
-
-      if (bridge) {
-        let result
-        try {
-          result = await bridge.generatePayeCsv(payload)
-        } catch (e) {
-          setPayeExportError(String(e?.message ?? e))
-          return
-        }
-        if (!result?.saved) {
-          if (result?.error) setPayeExportError(result.error)
-          return
-        }
-      } else {
-        const res = await fetch(buildApiUrl(apiBase, '/api/paye/generate'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-        if (!res.ok) throw new Error(`Export failed (HTTP ${res.status})`)
-        const blob = await res.blob()
-        const filename = res.headers.get('content-disposition')?.match(/filename="?([^"]+)"?/)?.[1] ?? 'paye.csv'
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = filename
-        document.body.appendChild(a)
-        a.click()
-        a.remove()
-        URL.revokeObjectURL(url)
-      }
+      const csvText = payeGenerateCsv(
+        payeCompanyName,
+        payeCompanyTin,
+        payeCompanyAddress,
+        String(payeYear),
+        payePeriod,
+        payeEmployees.map(emp => ({ ...emp })),
+      )
+      const filename = payeBuildFilename(payeCompanyName, String(payeYear), payePeriod)
+      triggerDownload(new TextEncoder().encode(csvText), filename, 'text/csv;charset=utf-8;')
     } catch (e) {
       setPayeExportError(String(e?.message ?? e))
     } finally {
@@ -1262,16 +1213,16 @@ export default function App() {
                         cancelLabel: 'Cancel',
                       })
                       if (!ok) return
-                      try {
-                        const updated = bridge
-                          ? await bridge.resetCalculationDefaults()
-                          : await apiJson('/api/settings/reset-calculation-defaults', { method: 'POST' }, apiBase)
-                        setSettings(updated)
-                        setSettingsSaved(false)
-                        setCalcSettingsUnlocked(false)
-                      } catch (e) {
-                        setSettingsErr(String(e?.message ?? e))
+                      const updated = {
+                        ...settings,
+                        wageCeilings: DEFAULT_SETTINGS.wageCeilings,
+                        contributionRates: DEFAULT_SETTINGS.contributionRates,
+                        over60EmployerPct: DEFAULT_SETTINGS.over60EmployerPct,
                       }
+                      persistSettings(updated)
+                      setSettings(updated)
+                      setSettingsSaved(false)
+                      setCalcSettingsUnlocked(false)
                     }}
                   >
                     Reset calculation defaults
