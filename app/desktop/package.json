@@ -7,9 +7,9 @@
   "scripts": {
     "copy-renderer": "node ./scripts/copy-renderer.cjs",
     "build:renderer": "npm --prefix ../frontend ci && npm --prefix ../frontend run build && npm run copy-renderer",
-    "build:backend": "bash ./scripts/build-backend.sh",
+    "build:backend": "node ./scripts/build-backend.cjs",
     "pack": "npm run build:renderer && npm run build:backend && electron-builder --dir",
-    "dist": "bash ./scripts/dist.sh",
+    "dist": "node ./scripts/dist.cjs",
     "dev": "electron ."
   },
   "devDependencies": {
@@ -58,6 +58,7 @@
       ]
     },
     "win": {
+      "signAndEditExecutable": false,
       "target": [
         "nsis"
       ]

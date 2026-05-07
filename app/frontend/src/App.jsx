@@ -107,6 +107,76 @@ function base64ToUint8Array(base64) {
   return out
 }
 
+// ── PAYE helpers ─────────────────────────────────────────────────────────────
+
+function newPayeEmployee() {
+  return {
+    id: ++_id,
+    tin: '', employeeNumber: '', firstName: '', lastName: '', otherNames: '',
+    address: '', payFrequency: 'Monthly', periodEmployed: '',
+    employeeType: 'Full-Time', primarySecondary: 'Primary',
+    value7A: '', totalOvertime: '', secondJobDeduction: '', overtimeDeduction: '',
+    value7B: '', value7CTaxable: '', value7CNonTaxable: '',
+    personalAllowance: '', employeeNIS: '', medicalInsurance: '', childrenDeduction: '',
+    taxDeducted: '',
+    dateOfBirth: '', bankName: '', bankAccountNo: '', bankRouting: '', bankTransit: '',
+    childDeclarationNo: '',
+  }
+}
+
+function calcPayeRow(emp) {
+  const v7a = Number(emp.value7A) || 0
+  const ot = Number(emp.totalOvertime) || 0
+  const sjd = Number(emp.secondJobDeduction) || 0
+  const otd = Number(emp.overtimeDeduction) || 0
+  const adjusted7A = v7a + ot - sjd - otd
+  const v7b = Number(emp.value7B) || 0
+  const v7ct = Number(emp.value7CTaxable) || 0
+  const v7cn = Number(emp.value7CNonTaxable) || 0
+  const totalIncome = adjusted7A + v7b + v7ct + v7cn
+  const pa = Number(emp.personalAllowance) || 0
+  const nis = Number(emp.employeeNIS) || 0
+  const medical = Number(emp.medicalInsurance) || 0
+  const children = Number(emp.childrenDeduction) || 0
+  const totalDeductions = pa + nis + medical + children
+  return { adjusted7A, totalIncome, totalDeductions }
+}
+
+// Column spec for PAYE table. calc: fn(rowCalc) for read-only calculated fields.
+const PAYE_COLS = [
+  { key: 'tin',                label: 'TIN',              w: 110, t: 'text',   ph: '123456789' },
+  { key: 'employeeNumber',     label: 'Emp #',            w:  90, t: 'text',   ph: '' },
+  { key: 'lastName',           label: 'Last Name',        w: 120, t: 'text',   ph: 'DOE' },
+  { key: 'firstName',          label: 'First Name',       w: 110, t: 'text',   ph: 'JANE' },
+  { key: 'otherNames',         label: 'Other Names',      w: 110, t: 'text',   ph: '' },
+  { key: 'address',            label: 'Address',          w:  80, t: 'number', ph: '1', min: 1 },
+  { key: 'payFrequency',       label: 'Pay Freq',         w: 110, t: 'select', opts: ['Daily', 'Weekly', 'Monthly'] },
+  { key: 'periodEmployed',     label: 'Period',           w:  72, t: 'number', ph: '1', min: 1 },
+  { key: 'employeeType',       label: 'Type',             w: 100, t: 'select', opts: ['Full-Time', 'Part-Time'] },
+  { key: 'primarySecondary',   label: 'Primary/2nd',      w: 100, t: 'select', opts: ['Primary', 'Secondary'] },
+  { key: 'value7A',            label: '7A Wages',         w: 100, t: 'number', ph: '0', min: 0 },
+  { key: 'totalOvertime',      label: 'Overtime',         w:  90, t: 'number', ph: '0', min: 0 },
+  { key: 'secondJobDeduction', label: '2nd Job Deduct',   w: 110, t: 'number', ph: '0', min: 0 },
+  { key: 'overtimeDeduction',  label: 'OT Deduction',     w: 100, t: 'number', ph: '0', min: 0 },
+  { key: '_adj7A',             label: 'Adjusted 7A ↩',    w: 110, calc: c => c.adjusted7A },
+  { key: 'value7B',            label: '7B Board/Lodge',   w: 110, t: 'number', ph: '0', min: 0 },
+  { key: 'value7CTaxable',     label: '7C Taxable',       w: 100, t: 'number', ph: '0', min: 0 },
+  { key: 'value7CNonTaxable',  label: '7C Non-Tax',       w: 100, t: 'number', ph: '0', min: 0 },
+  { key: '_totalIncome',       label: 'Total Income ↩',   w: 110, calc: c => c.totalIncome },
+  { key: 'personalAllowance',  label: 'Personal Allow',   w: 110, t: 'number', ph: '0', min: 0 },
+  { key: 'employeeNIS',        label: 'NIS Contribution', w: 110, t: 'number', ph: '0', min: 0 },
+  { key: 'medicalInsurance',   label: 'Medical/Life Ins', w: 120, t: 'number', ph: '0', min: 0 },
+  { key: 'childrenDeduction',  label: 'Children Deduct',  w: 120, t: 'number', ph: '0', min: 0 },
+  { key: '_totalDeductions',   label: 'Total Deductions ↩', w: 130, calc: c => c.totalDeductions },
+  { key: 'taxDeducted',        label: 'Tax Deducted',     w: 100, t: 'number', ph: '0', min: 0 },
+  { key: 'dateOfBirth',        label: 'Date of Birth',    w: 140, t: 'date' },
+  { key: 'bankName',           label: 'Bank Name',        w: 120, t: 'text',   ph: '' },
+  { key: 'bankAccountNo',      label: 'Bank Account #',   w: 130, t: 'text',   ph: '' },
+  { key: 'bankRouting',        label: 'Routing/Sort',     w: 110, t: 'text',   ph: '' },
+  { key: 'bankTransit',        label: 'Transit No',       w: 100, t: 'text',   ph: '' },
+  { key: 'childDeclarationNo', label: 'Child Decl #',     w: 100, t: 'text',   ph: '' },
+]
+
 // ── Styles ───────────────────────────────────────────────────────────────────
 
 const C = {
@@ -272,6 +342,11 @@ export default function App() {
   useDashedFocus()
   const { bridge, apiBase } = useDesktopBridge()
 
+  // ── App tab ──
+  const [activeApp, setActiveApp] = useState('nis')
+
+  // ── NIS state ──────────────────────────────────────────────────────────────
+
   // Header
   const [employerName, setEmployerName] = useState('')
   const [header, setHeader] = useState({
@@ -314,6 +389,19 @@ export default function App() {
 
   // Generate
   const [busy, setBusy] = useState(false)
+
+  // ── PAYE state ─────────────────────────────────────────────────────────────
+
+  const [payeCompanyName, setPayeCompanyName] = useState('')
+  const [payeCompanyTin, setPayeCompanyTin] = useState('')
+  const [payeCompanyAddress, setPayeCompanyAddress] = useState('')
+  const [payeYear, setPayeYear] = useState(new Date().getFullYear())
+  const [payePeriod, setPayePeriod] = useState('')
+  const [payeEmployees, setPayeEmployees] = useState([newPayeEmployee()])
+  const [payeBusy, setPayeBusy] = useState(false)
+  const [payeExportError, setPayeExportError] = useState('')
+
+  // ── NIS effects & computed ─────────────────────────────────────────────────
 
   // Load settings and auto-fill defaults into empty form fields
   useEffect(() => {
@@ -381,6 +469,21 @@ export default function App() {
     () => rowCalcs.some(c => (c?.er ?? 0) !== 0),
     [rowCalcs],
   )
+
+  // ── PAYE computed ──────────────────────────────────────────────────────────
+
+  const payeRowCalcs = useMemo(() => payeEmployees.map(calcPayeRow), [payeEmployees])
+
+  const payeTotals = useMemo(() => payeEmployees.reduce((sum, emp, i) => {
+    const c = payeRowCalcs[i]
+    return {
+      totalIncome: sum.totalIncome + c.totalIncome,
+      totalDeductions: sum.totalDeductions + c.totalDeductions,
+      taxDeducted: sum.taxDeducted + (Number(emp.taxDeducted) || 0),
+    }
+  }, { totalIncome: 0, totalDeductions: 0, taxDeducted: 0 }), [payeEmployees, payeRowCalcs])
+
+  // ── NIS mutations ──────────────────────────────────────────────────────────
 
   // Employee table mutations
   function updateEmp(id, patch) {
@@ -550,213 +653,528 @@ export default function App() {
     }
   }
 
+  // ── PAYE mutations ─────────────────────────────────────────────────────────
+
+  function updatePayeEmp(id, patch) {
+    setPayeEmployees(emps => emps.map(e => e.id === id ? { ...e, ...patch } : e))
+  }
+  function addPayeEmployee() {
+    setPayeEmployees(emps => [...emps, newPayeEmployee()])
+  }
+  function removePayeEmployee(id) {
+    setPayeEmployees(emps => emps.length > 1 ? emps.filter(e => e.id !== id) : emps)
+  }
+  function clearPayeAll() {
+    ;(async () => {
+      const ok = await confirmModal({
+        title: 'Clear PAYE data?',
+        body: 'Clear all PAYE employee data and reset the form?',
+        confirmLabel: 'Clear all',
+        cancelLabel: 'Cancel',
+      })
+      if (!ok) return
+      setPayeCompanyName('')
+      setPayeCompanyTin('')
+      setPayeCompanyAddress('')
+      setPayeYear(new Date().getFullYear())
+      setPayePeriod('')
+      setPayeEmployees([newPayeEmployee()])
+      setPayeExportError('')
+    })()
+  }
+
+  async function onPayeExport() {
+    const errors = []
+    if (!payeCompanyName.trim()) errors.push('Agency/Company Name is required.')
+    const tin = payeCompanyTin.trim()
+    if (!tin) {
+      errors.push('Company TIN is required.')
+    } else if (!/^\d{9}$/.test(tin)) {
+      errors.push('Company TIN must be exactly 9 numeric digits.')
+    }
+    if (!payeYear) errors.push('Year is required.')
+
+    const hasEntry = payeEmployees.some(e => e.lastName.trim())
+    if (!hasEntry) errors.push('At least one employee must have a Last Name.')
+
+    payeEmployees.forEach((emp, i) => {
+      const row = i + 1
+      if (!emp.lastName.trim()) errors.push(`Row ${row}: Last Name is required.`)
+      const empTin = emp.tin.trim()
+      if (empTin && !/^\d{9}$/.test(empTin)) {
+        errors.push(`Row ${row}: TIN must be exactly 9 numeric digits.`)
+      }
+    })
+
+    if (errors.length > 0) {
+      setPayeExportError(errors.join('\n'))
+      return
+    }
+
+    setPayeExportError('')
+    setPayeBusy(true)
+    try {
+      const payload = {
+        companyName: payeCompanyName,
+        companyTin: payeCompanyTin,
+        companyAddress: payeCompanyAddress,
+        year: String(payeYear),
+        period: payePeriod,
+        employees: payeEmployees.map(emp => ({ ...emp })),
+      }
+
+      if (bridge) {
+        let result
+        try {
+          result = await bridge.generatePayeCsv(payload)
+        } catch (e) {
+          setPayeExportError(String(e?.message ?? e))
+          return
+        }
+        if (!result?.saved) {
+          if (result?.error) setPayeExportError(result.error)
+          return
+        }
+      } else {
+        const res = await fetch(buildApiUrl(apiBase, '/api/paye/generate'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        if (!res.ok) throw new Error(`Export failed (HTTP ${res.status})`)
+        const blob = await res.blob()
+        const filename = res.headers.get('content-disposition')?.match(/filename="?([^"]+)"?/)?.[1] ?? 'paye.csv'
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        URL.revokeObjectURL(url)
+      }
+    } catch (e) {
+      setPayeExportError(String(e?.message ?? e))
+    } finally {
+      setPayeBusy(false)
+    }
+  }
+
   const wageCount = isWeekly ? 5 : 1
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div style={S.page}>
-      {/* ── Page title ── */}
-      <div style={S.topRow}>
-        <div>
-          <div style={S.mono}>NIS</div>
-          <h1 style={S.h1}>V75 Internal NIS Electronic Schedule</h1>
-          <div style={S.subtitle}>
-            Based on <span style={S.mono}>NIS_ELECTRONIC_SCHEDULE_2026_v2.0.xls</span> (Year: <span style={S.mono}>2026</span>, Version: <span style={S.mono}>v2.0</span>).
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <button style={S.linkBtn} onClick={() => setShowDisclaimer(true)}>Disclaimer / Terms</button>
-          <button style={{ ...S.pillSmWhite, alignSelf: 'center' }} onClick={() => setShowSettings(true)}>Settings</button>
-        </div>
+
+      {/* ── App tab switcher ── */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20, borderBottom: `1px solid ${C.borderCream}`, paddingBottom: 16 }}>
+        <button
+          style={activeApp === 'nis' ? S.pillSm : S.pillSmWhite}
+          onClick={() => setActiveApp('nis')}
+        >
+          NIS Schedule
+        </button>
+        <button
+          style={activeApp === 'paye' ? S.pillSm : S.pillSmWhite}
+          onClick={() => setActiveApp('paye')}
+        >
+          PAYE
+        </button>
       </div>
 
-      {/* ── Schedule header ── */}
-      <div style={S.card}>
-        <div style={S.mono}>Schedule Header</div>
-        <div style={{ height: 12 }} />
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', gap: 12 }}>
-          <div>
-            <label style={S.label}>Employer Name</label>
-            <input style={S.input} value={employerName} onChange={e => setEmployerName(e.target.value)} placeholder="e.g. Acme Ltd" />
+      {/* ════════════════════════════════ NIS SECTION ════════════════════════════════ */}
+      {activeApp === 'nis' && (
+        <>
+          {/* ── Page title ── */}
+          <div style={S.topRow}>
+            <div>
+              <div style={S.mono}>NIS</div>
+              <h1 style={S.h1}>V75 Internal NIS Electronic Schedule</h1>
+              <div style={S.subtitle}>
+                Based on <span style={S.mono}>NIS_ELECTRONIC_SCHEDULE_2026_v2.0.xls</span> (Year: <span style={S.mono}>2026</span>, Version: <span style={S.mono}>v2.0</span>).
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <button style={S.linkBtn} onClick={() => setShowDisclaimer(true)}>Disclaimer / Terms</button>
+              <button style={{ ...S.pillSmWhite, alignSelf: 'center' }} onClick={() => setShowSettings(true)}>Settings</button>
+            </div>
           </div>
-          <div>
-            <label style={S.label}>Registration #</label>
-            <input
-              style={S.input}
-              value={header.regNoRaw}
-              onChange={e => setHeader(h => ({ ...h, regNoRaw: e.target.value.slice(0, 6) }))}
-              placeholder="123456"
-              maxLength={6}
-              autoComplete="off"
-              title="NIS file format: up to 6 characters"
-            />
-          </div>
-          <div>
-            <label style={S.label}>Year</label>
-            <input style={S.input} type="number" value={header.contributionYear} onChange={e => setHeader(h => ({ ...h, contributionYear: Number(e.target.value) || 0 }))} />
-          </div>
-          <div>
-            <label style={S.label}>Month</label>
-            <select style={S.input} value={header.contributionMonthName} onChange={e => setHeader(h => ({ ...h, contributionMonthName: e.target.value }))}>
-              {MONTH_NAMES.map(m => <option key={m}>{m}</option>)}
-            </select>
-          </div>
-          <div>
-            <label style={S.label}>Schedule Type</label>
-            <select style={S.input} value={header.scheduleType} onChange={e => onScheduleTypeChange(e.target.value)}>
-              <option>Monthly</option>
-              <option>Weekly</option>
-            </select>
-          </div>
-        </div>
 
-        <div style={{ height: 16 }} />
-        <div style={S.mono}>Pay Period Dates</div>
-        <div style={{ height: 10 }} />
-        <div style={isWeekly ? S.grid5 : { maxWidth: 220 }}>
-          <div>
-            <label style={S.label}>Period 1</label>
-            <input
-              ref={period1Ref}
-              style={{
-                ...S.input,
-                ...(period1Required ? { borderColor: C.focusBlue, boxShadow: `${C.white} 0px 0px 0px 0px, ${C.focusBlue} 0px 0px 0px 2px` } : null),
-              }}
-              type="date"
-              value={periods[0]}
-              onChange={e => onPeriod1Change(e.target.value)}
-            />
-            {period1Required && (
-              <div style={{ marginTop: 6, fontSize: 12, color: C.oliveGray }}>
-                Period 1 is required before generating files.
+          {/* ── Schedule header ── */}
+          <div style={S.card}>
+            <div style={S.mono}>Schedule Header</div>
+            <div style={{ height: 12 }} />
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', gap: 12 }}>
+              <div>
+                <label style={S.label}>Employer Name</label>
+                <input style={S.input} value={employerName} onChange={e => setEmployerName(e.target.value)} placeholder="e.g. Acme Ltd" />
+              </div>
+              <div>
+                <label style={S.label}>Registration #</label>
+                <input
+                  style={S.input}
+                  value={header.regNoRaw}
+                  onChange={e => setHeader(h => ({ ...h, regNoRaw: e.target.value.slice(0, 6) }))}
+                  placeholder="123456"
+                  maxLength={6}
+                  autoComplete="off"
+                  title="NIS file format: up to 6 characters"
+                />
+              </div>
+              <div>
+                <label style={S.label}>Year</label>
+                <input style={S.input} type="number" value={header.contributionYear} onChange={e => setHeader(h => ({ ...h, contributionYear: Number(e.target.value) || 0 }))} />
+              </div>
+              <div>
+                <label style={S.label}>Month</label>
+                <select style={S.input} value={header.contributionMonthName} onChange={e => setHeader(h => ({ ...h, contributionMonthName: e.target.value }))}>
+                  {MONTH_NAMES.map(m => <option key={m}>{m}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={S.label}>Schedule Type</label>
+                <select style={S.input} value={header.scheduleType} onChange={e => onScheduleTypeChange(e.target.value)}>
+                  <option>Monthly</option>
+                  <option>Weekly</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ height: 16 }} />
+            <div style={S.mono}>Pay Period Dates</div>
+            <div style={{ height: 10 }} />
+            <div style={isWeekly ? S.grid5 : { maxWidth: 220 }}>
+              <div>
+                <label style={S.label}>Period 1</label>
+                <input
+                  ref={period1Ref}
+                  style={{
+                    ...S.input,
+                    ...(period1Required ? { borderColor: C.focusBlue, boxShadow: `${C.white} 0px 0px 0px 0px, ${C.focusBlue} 0px 0px 0px 2px` } : null),
+                  }}
+                  type="date"
+                  value={periods[0]}
+                  onChange={e => onPeriod1Change(e.target.value)}
+                />
+                {period1Required && (
+                  <div style={{ marginTop: 6, fontSize: 12, color: C.oliveGray }}>
+                    Period 1 is required before generating files.
+                  </div>
+                )}
+              </div>
+              {isWeekly && [1,2,3,4].map(i => (
+                <div key={i}>
+                  <label style={S.label}>Period {i + 1}</label>
+                  <input style={{ ...S.input, opacity: 0.6 }} type="date" value={periods[i]} readOnly />
+                </div>
+              ))}
+            </div>
+
+            <div style={S.headerFooterRow}>
+              <div style={S.payableBox}>
+                <div style={S.mono}>Total Payable</div>
+                <div style={S.payable}>{fmtMoney(totalPayable)}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Employee table ── */}
+          <div style={S.card}>
+            <div style={S.cardHead}>
+              <div style={S.mono}>Employees</div>
+              <button style={S.pillSm} onClick={addEmployee}>+ Add employee</button>
+            </div>
+
+            <div style={S.tableWrap}>
+              <table style={S.table}>
+                <thead>
+                  <tr>
+                    <th style={{ ...S.th, width: 60 }}>Over 60 flag</th>
+                    <th style={{ ...S.th, minWidth: 140 }}>SSN</th>
+                    <th style={{ ...S.th, minWidth: 130 }}>Surname</th>
+                    <th style={{ ...S.th, minWidth: 110 }}>First Name</th>
+                    {Array.from({ length: wageCount }, (_, i) => (
+                      <th key={i} style={{ ...S.th, width: 130 }}>Wages Period {i + 1}</th>
+                    ))}
+                    {isWeekly && <th style={{ ...S.th, width: 90 }}>Weeks Worked</th>}
+                    <th style={S.thCalc}>Total Actual Wages</th>
+                    <th style={S.thCalc}>Total Insurable Wages</th>
+                    <th style={S.thCalc}>Employee Contribution</th>
+                    <th style={S.thCalc}>Employer Contribution</th>
+                    <th style={{ ...S.th, width: 32 }} />
+                  </tr>
+                </thead>
+                <tbody>
+                  {employees.map((emp, rowIdx) => {
+                    const calc = rowCalcs[rowIdx]
+                    return (
+                      <tr key={emp.id}>
+                        <td style={S.td}>
+                          <select style={S.inputSm} value={emp.over60} onChange={e => updateEmp(emp.id, { over60: e.target.value })}>
+                            <option>No</option>
+                            <option>Yes</option>
+                          </select>
+                        </td>
+                        <td style={S.td}>
+                          <input style={S.inputSm} value={emp.ssn} onChange={e => updateEmp(emp.id, { ssn: e.target.value })} placeholder="123456789" />
+                        </td>
+                        <td style={S.td}>
+                          <input style={S.inputSm} value={emp.surname} onChange={e => updateEmp(emp.id, { surname: e.target.value.toUpperCase() })} placeholder="DOE" />
+                        </td>
+                        <td style={S.td}>
+                          <input style={S.inputSm} value={emp.firstname} onChange={e => updateEmp(emp.id, { firstname: e.target.value.toUpperCase() })} placeholder="JANE" />
+                        </td>
+                        {Array.from({ length: wageCount }, (_, i) => (
+                          <td key={i} style={S.td}>
+                            <input style={S.inputSm} type="number" min="0" value={emp.wages[i]} onChange={e => updateWage(emp.id, i, e.target.value)} placeholder="0" />
+                          </td>
+                        ))}
+                        {isWeekly && (
+                          <td style={S.td}>
+                            <input style={S.inputSm} type="number" min="1" max="5" value={emp.weeksWorked} onChange={e => updateEmp(emp.id, { weeksWorked: e.target.value })} placeholder="1" />
+                          </td>
+                        )}
+                        <td style={S.tdCalc}>{fmtMoney(calc.totalActual)}</td>
+                        <td style={S.tdCalc}>{fmtMoney(calc.totalInsurable)}</td>
+                        <td style={S.tdCalc}>{fmtMoney(calc.ee)}</td>
+                        <td style={S.tdCalc}>{fmtMoney(calc.er)}</td>
+                        <td style={S.tdRemove}>
+                          <button
+                            style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, opacity: 0.35, padding: 2 }}
+                            onClick={() => removeEmployee(emp.id)}
+                            title="Remove row"
+                          >×</button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+                {employees.length > 1 && (
+                  <tfoot>
+                    <tr style={S.totalRow}>
+                      <td colSpan={4 + wageCount + (isWeekly ? 1 : 0)} style={S.totalLabel}>Totals</td>
+                      <td style={{ ...S.totalVal, textAlign: 'right', padding: '8px 6px' }}>{fmtMoney(rowCalcs.reduce((s, c) => s + c.totalActual, 0))}</td>
+                      <td style={{ ...S.totalVal, textAlign: 'right', padding: '8px 6px' }}>{fmtMoney(rowCalcs.reduce((s, c) => s + c.totalInsurable, 0))}</td>
+                      <td style={{ ...S.totalVal, textAlign: 'right', padding: '8px 6px' }}>{fmtMoney(rowCalcs.reduce((s, c) => s + c.ee, 0))}</td>
+                      <td style={{ ...S.totalVal, textAlign: 'right', padding: '8px 6px' }}>{fmtMoney(rowCalcs.reduce((s, c) => s + c.er, 0))}</td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+
+            {!settings && (
+              <div style={{ fontSize: 12, opacity: 0.5, marginTop: 10 }}>
+                Contributions will calculate once settings load.
               </div>
             )}
-          </div>
-          {isWeekly && [1,2,3,4].map(i => (
-            <div key={i}>
-              <label style={S.label}>Period {i + 1}</label>
-              <input style={{ ...S.input, opacity: 0.6 }} type="date" value={periods[i]} readOnly />
+
+            <div style={S.btnRowSplit}>
+              <div style={S.btnGroup}>
+                <button style={withDisabled(S.pillWhite, busy)} onClick={clearAll} disabled={busy}>Clear all</button>
+              </div>
+
+              <div style={{ ...S.btnGroup, justifyContent: 'flex-end' }}>
+                {exportHint
+                  ? <span style={{ fontSize: 12, color: C.oliveGray, maxWidth: 520, textAlign: 'right' }}>{exportHint}</span>
+                  : (!periods[0] && <span style={{ fontSize: 12, opacity: 0.6 }}>Set a period date to generate</span>)
+                }
+                <button style={withDisabled(S.pill, busy || !periods[0])} onClick={onGenerate} disabled={busy || !periods[0]}>
+                  {busy ? 'Generating…' : 'Generate file'}
+                </button>
+              </div>
             </div>
-          ))}
-        </div>
-
-        <div style={S.headerFooterRow}>
-          <div style={S.payableBox}>
-            <div style={S.mono}>Total Payable</div>
-            <div style={S.payable}>{fmtMoney(totalPayable)}</div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
 
-      {/* ── Employee table ── */}
-      <div style={S.card}>
-        <div style={S.cardHead}>
-          <div style={S.mono}>Employees</div>
-          <button style={S.pillSm} onClick={addEmployee}>+ Add employee</button>
-        </div>
+      {/* ════════════════════════════════ PAYE SECTION ═══════════════════════════════ */}
+      {activeApp === 'paye' && (
+        <>
+          {/* ── Page title ── */}
+          <div style={S.topRow}>
+            <div>
+              <div style={S.mono}>PAYE</div>
+              <h1 style={S.h1}>PAYE File Generator</h1>
+              <div style={S.subtitle}>
+                Based on <span style={S.mono}>PAYE_File_Generator_v2026.02.26.xlsm</span>. Generates a CSV for submission to the GRA via eServices.
+              </div>
+            </div>
+          </div>
 
-        <div style={S.tableWrap}>
-          <table style={S.table}>
-            <thead>
-              <tr>
-                <th style={{ ...S.th, width: 60 }}>Over 60 flag</th>
-                <th style={{ ...S.th, minWidth: 140 }}>SSN</th>
-                <th style={{ ...S.th, minWidth: 130 }}>Surname</th>
-                <th style={{ ...S.th, minWidth: 110 }}>First Name</th>
-                {Array.from({ length: wageCount }, (_, i) => (
-                  <th key={i} style={{ ...S.th, width: 130 }}>Wages Period {i + 1}</th>
-                ))}
-                {isWeekly && <th style={{ ...S.th, width: 90 }}>Weeks Worked</th>}
-                <th style={S.thCalc}>Total Actual Wages</th>
-                <th style={S.thCalc}>Total Insurable Wages</th>
-                <th style={S.thCalc}>Employee Contribution</th>
-                <th style={S.thCalc}>Employer Contribution</th>
-                <th style={{ ...S.th, width: 32 }} />
-              </tr>
-            </thead>
-            <tbody>
-              {employees.map((emp, rowIdx) => {
-                const calc = rowCalcs[rowIdx]
-                return (
-                  <tr key={emp.id}>
-                    <td style={S.td}>
-                      <select style={S.inputSm} value={emp.over60} onChange={e => updateEmp(emp.id, { over60: e.target.value })}>
-                        <option>No</option>
-                        <option>Yes</option>
-                      </select>
-                    </td>
-                    <td style={S.td}>
-                      <input style={S.inputSm} value={emp.ssn} onChange={e => updateEmp(emp.id, { ssn: e.target.value })} placeholder="123456789" />
-                    </td>
-                    <td style={S.td}>
-                      <input style={S.inputSm} value={emp.surname} onChange={e => updateEmp(emp.id, { surname: e.target.value.toUpperCase() })} placeholder="DOE" />
-                    </td>
-                    <td style={S.td}>
-                      <input style={S.inputSm} value={emp.firstname} onChange={e => updateEmp(emp.id, { firstname: e.target.value.toUpperCase() })} placeholder="JANE" />
-                    </td>
-                    {Array.from({ length: wageCount }, (_, i) => (
-                      <td key={i} style={S.td}>
-                        <input style={S.inputSm} type="number" min="0" value={emp.wages[i]} onChange={e => updateWage(emp.id, i, e.target.value)} placeholder="0" />
-                      </td>
+          {/* ── Employer header ── */}
+          <div style={S.card}>
+            <div style={S.mono}>Employer Information</div>
+            <div style={{ height: 12 }} />
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 12 }}>
+              <div>
+                <label style={S.label}>Agency / Company Name</label>
+                <input style={S.input} value={payeCompanyName} onChange={e => setPayeCompanyName(e.target.value)} placeholder="e.g. Acme Ltd" />
+              </div>
+              <div>
+                <label style={S.label}>Company TIN</label>
+                <input
+                  style={S.input}
+                  value={payeCompanyTin}
+                  onChange={e => setPayeCompanyTin(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                  placeholder="123456789"
+                  maxLength={9}
+                  autoComplete="off"
+                />
+              </div>
+              <div>
+                <label style={S.label}>Year</label>
+                <input style={S.input} type="number" value={payeYear} onChange={e => setPayeYear(Number(e.target.value) || 0)} />
+              </div>
+              <div>
+                <label style={S.label}>Period (month #)</label>
+                <input
+                  style={S.input}
+                  value={payePeriod}
+                  onChange={e => setPayePeriod(e.target.value.replace(/\D/g, '').slice(0, 2))}
+                  placeholder="02"
+                  maxLength={2}
+                />
+              </div>
+            </div>
+            <div style={{ marginTop: 12 }}>
+              <label style={S.label}>Company Address</label>
+              <input
+                style={{ ...S.input, maxWidth: 520 }}
+                value={payeCompanyAddress}
+                onChange={e => setPayeCompanyAddress(e.target.value)}
+                placeholder="123 Main Street, Georgetown"
+              />
+            </div>
+
+            {/* Summary bar */}
+            <div style={{ display: 'flex', gap: 32, marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.borderCream}`, flexWrap: 'wrap' }}>
+              <div style={S.payableBox}>
+                <div style={S.mono}>Entries</div>
+                <div style={S.payable}>{payeEmployees.filter(e => e.lastName.trim()).length}</div>
+              </div>
+              <div style={S.payableBox}>
+                <div style={S.mono}>Total Income</div>
+                <div style={S.payable}>{fmtMoney(payeTotals.totalIncome)}</div>
+              </div>
+              <div style={S.payableBox}>
+                <div style={S.mono}>Total Deductions</div>
+                <div style={S.payable}>{fmtMoney(payeTotals.totalDeductions)}</div>
+              </div>
+              <div style={S.payableBox}>
+                <div style={S.mono}>Total Tax Deducted</div>
+                <div style={S.payable}>{fmtMoney(payeTotals.taxDeducted)}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Employee table ── */}
+          <div style={S.card}>
+            <div style={S.cardHead}>
+              <div>
+                <div style={S.mono}>Employees</div>
+                <div style={{ fontSize: 12, color: C.stoneGray, marginTop: 4 }}>
+                  Columns marked ↩ are auto-calculated from other fields in the same row.
+                </div>
+              </div>
+              <button style={S.pillSm} onClick={addPayeEmployee}>+ Add employee</button>
+            </div>
+
+            <div style={S.tableWrap}>
+              <table style={{ ...S.table, tableLayout: 'fixed', minWidth: PAYE_COLS.reduce((s, c) => s + c.w, 0) + 32 }}>
+                <thead>
+                  <tr>
+                    {PAYE_COLS.map(col => (
+                      <th
+                        key={col.key}
+                        style={{
+                          ...S.th,
+                          width: col.w,
+                          minWidth: col.w,
+                          ...(col.calc ? { color: C.terracotta } : {}),
+                        }}
+                      >
+                        {col.label}
+                      </th>
                     ))}
-                    {isWeekly && (
-                      <td style={S.td}>
-                        <input style={S.inputSm} type="number" min="1" max="5" value={emp.weeksWorked} onChange={e => updateEmp(emp.id, { weeksWorked: e.target.value })} placeholder="1" />
-                      </td>
-                    )}
-                    <td style={S.tdCalc}>{fmtMoney(calc.totalActual)}</td>
-                    <td style={S.tdCalc}>{fmtMoney(calc.totalInsurable)}</td>
-                    <td style={S.tdCalc}>{fmtMoney(calc.ee)}</td>
-                    <td style={S.tdCalc}>{fmtMoney(calc.er)}</td>
-                    <td style={S.tdRemove}>
-                      <button
-                        style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, opacity: 0.35, padding: 2 }}
-                        onClick={() => removeEmployee(emp.id)}
-                        title="Remove row"
-                      >×</button>
-                    </td>
+                    <th style={{ ...S.th, width: 32, minWidth: 32 }} />
                   </tr>
-                )
-              })}
-            </tbody>
-            {employees.length > 1 && (
-              <tfoot>
-                <tr style={S.totalRow}>
-                  <td colSpan={4 + wageCount + (isWeekly ? 1 : 0)} style={S.totalLabel}>Totals</td>
-                  <td style={{ ...S.totalVal, textAlign: 'right', padding: '8px 6px' }}>{fmtMoney(rowCalcs.reduce((s, c) => s + c.totalActual, 0))}</td>
-                  <td style={{ ...S.totalVal, textAlign: 'right', padding: '8px 6px' }}>{fmtMoney(rowCalcs.reduce((s, c) => s + c.totalInsurable, 0))}</td>
-                  <td style={{ ...S.totalVal, textAlign: 'right', padding: '8px 6px' }}>{fmtMoney(rowCalcs.reduce((s, c) => s + c.ee, 0))}</td>
-                  <td style={{ ...S.totalVal, textAlign: 'right', padding: '8px 6px' }}>{fmtMoney(rowCalcs.reduce((s, c) => s + c.er, 0))}</td>
-                  <td />
-                </tr>
-              </tfoot>
-            )}
-          </table>
-        </div>
+                </thead>
+                <tbody>
+                  {payeEmployees.map((emp, rowIdx) => {
+                    const calc = payeRowCalcs[rowIdx]
+                    return (
+                      <tr key={emp.id}>
+                        {PAYE_COLS.map(col => {
+                          if (col.calc) {
+                            return (
+                              <td key={col.key} style={{ ...S.tdCalc, background: '#faf4f0' }}>
+                                {fmtMoney(col.calc(calc))}
+                              </td>
+                            )
+                          }
+                          if (col.t === 'select') {
+                            return (
+                              <td key={col.key} style={S.td}>
+                                <select
+                                  style={S.inputSm}
+                                  value={emp[col.key]}
+                                  onChange={e => updatePayeEmp(emp.id, { [col.key]: e.target.value })}
+                                >
+                                  {col.opts.map(o => <option key={o}>{o}</option>)}
+                                </select>
+                              </td>
+                            )
+                          }
+                          return (
+                            <td key={col.key} style={S.td}>
+                              <input
+                                style={S.inputSm}
+                                type={col.t}
+                                min={col.min}
+                                value={emp[col.key]}
+                                onChange={e => updatePayeEmp(emp.id, { [col.key]: e.target.value })}
+                                placeholder={col.ph ?? ''}
+                              />
+                            </td>
+                          )
+                        })}
+                        <td style={S.tdRemove}>
+                          <button
+                            style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, opacity: 0.35, padding: 2 }}
+                            onClick={() => removePayeEmployee(emp.id)}
+                            title="Remove row"
+                          >×</button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
 
-        {!settings && (
-          <div style={{ fontSize: 12, opacity: 0.5, marginTop: 10 }}>
-            Contributions will calculate once settings load.
+            <div style={S.btnRowSplit}>
+              <div style={S.btnGroup}>
+                <button style={withDisabled(S.pillWhite, payeBusy)} onClick={clearPayeAll} disabled={payeBusy}>Clear all</button>
+              </div>
+              <div style={{ ...S.btnGroup, justifyContent: 'flex-end' }}>
+                {payeExportError && (
+                  <span style={{ fontSize: 12, color: '#b53333', maxWidth: 520, textAlign: 'right', whiteSpace: 'pre-wrap' }}>
+                    {payeExportError}
+                  </span>
+                )}
+                <button style={withDisabled(S.pill, payeBusy)} onClick={onPayeExport} disabled={payeBusy}>
+                  {payeBusy ? 'Exporting…' : 'Export CSV'}
+                </button>
+              </div>
+            </div>
           </div>
-        )}
+        </>
+      )}
 
-        <div style={S.btnRowSplit}>
-          <div style={S.btnGroup}>
-            <button style={withDisabled(S.pillWhite, busy)} onClick={clearAll} disabled={busy}>Clear all</button>
-          </div>
-
-          <div style={{ ...S.btnGroup, justifyContent: 'flex-end' }}>
-            {exportHint
-              ? <span style={{ fontSize: 12, color: C.oliveGray, maxWidth: 520, textAlign: 'right' }}>{exportHint}</span>
-              : (!periods[0] && <span style={{ fontSize: 12, opacity: 0.6 }}>Set a period date to generate</span>)
-            }
-            <button style={withDisabled(S.pill, busy || !periods[0])} onClick={onGenerate} disabled={busy || !periods[0]}>
-              {busy ? 'Generating…' : 'Generate file'}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Settings modal ── */}
+      {/* ── Settings modal (NIS only) ── */}
       {showSettings && (
         <div
           onClick={() => setShowSettings(false)}
@@ -958,19 +1376,19 @@ export default function App() {
 
             <div style={{ fontSize: 13, lineHeight: 1.5 }}>
               <div style={{ marginBottom: 12 }}>
-                This web app is a convenience tool based on the Excel template <span style={S.mono}>NIS_ELECTRONIC_SCHEDULE_2026_v2.0.xls</span>.
-                It is provided “as-is” for internal use.
+                This web app is a convenience tool based on the Excel templates <span style={S.mono}>NIS_ELECTRONIC_SCHEDULE_2026_v2.0.xls</span> and <span style={S.mono}>PAYE_File_Generator_v2026.02.26.xlsm</span>.
+                It is provided "as-is" for internal use.
               </div>
 
               <div style={S.sectionLabel}>Not official advice</div>
               <div style={{ opacity: 0.85 }}>
-                This app is <b>not</b> affiliated with, endorsed by, or a substitute for guidance from the National Insurance Scheme (NIS) or any government agency.
-                You are responsible for verifying that your submissions meet current NIS rules and requirements.
+                This app is <b>not</b> affiliated with, endorsed by, or a substitute for guidance from the National Insurance Scheme (NIS), the Guyana Revenue Authority (GRA), or any government agency.
+                You are responsible for verifying that your submissions meet current requirements.
               </div>
 
               <div style={S.sectionLabel}>Accuracy & verification</div>
               <div style={{ opacity: 0.85 }}>
-                Calculations and file generation are intended to mirror the referenced Excel workbook and its business logic.
+                Calculations and file generation are intended to mirror the referenced Excel workbooks and their business logic.
                 Always review outputs before submission, especially when values are unusual or exceptionally large.
               </div>
 
@@ -981,13 +1399,14 @@ export default function App() {
 
               <div style={S.sectionLabel}>Privacy</div>
               <div style={{ opacity: 0.85 }}>
-                Social Security Numbers and employee data you enter may be processed to generate output files.
-                Use this app only on devices/environments you trust and follow your organisation’s data handling policies.
+                Social Security Numbers, TINs, and employee data you enter may be processed to generate output files.
+                Use this app only on devices/environments you trust and follow your organisation's data handling policies.
               </div>
 
-              <div style={S.sectionLabel}>Source reference</div>
+              <div style={S.sectionLabel}>Source references</div>
               <div style={{ opacity: 0.85 }}>
-                Source template: <span style={S.mono}>NIS_ELECTRONIC_SCHEDULE_2026_v2.0.xls</span> • Year: <span style={S.mono}>2026</span> • Version: <span style={S.mono}>v2.0</span>
+                NIS template: <span style={S.mono}>NIS_ELECTRONIC_SCHEDULE_2026_v2.0.xls</span> • Year: <span style={S.mono}>2026</span> • Version: <span style={S.mono}>v2.0</span><br />
+                PAYE template: <span style={S.mono}>PAYE_File_Generator_v2026.02.26.xlsm</span> • Version: <span style={S.mono}>v2026.02.26</span>
               </div>
             </div>
 

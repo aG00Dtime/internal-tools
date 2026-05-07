@@ -125,6 +125,10 @@ ipcMain.handle('nis:generate:xls', async (_event, payload) => {
   const result = await runBackendCommand('generate-xls', payload)
   return saveGeneratedFile(result)
 })
+ipcMain.handle('nis:paye:generate', async (_event, payload) => {
+  const result = await runBackendCommand('generate-paye-csv', payload)
+  return saveGeneratedFile(result)
+})
 
 async function saveGeneratedFile(result) {
   const defaultName = path.basename(result?.filename || 'nis-schedule.txt')

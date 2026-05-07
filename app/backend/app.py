@@ -17,6 +17,8 @@ from db import (
     reset_default_employer_info,
 )
 from nis_format import Header, build_filename, generate_lines
+from paye_format import build_filename as paye_build_filename
+from paye_format import generate_csv as paye_generate_csv
 from xls_export import build_xls_bytes
 
 
@@ -121,6 +123,31 @@ def create_app() -> Flask:
 
         resp = make_response(xls_bytes)
         resp.headers["Content-Type"] = "application/vnd.ms-excel"
+        resp.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return resp
+
+    @app.post("/api/paye/generate")
+    def api_paye_generate():
+        payload = request.get_json(force=True)
+        company_name = str(payload.get("companyName", "") or "")
+        company_tin = str(payload.get("companyTin", "") or "")
+        company_address = str(payload.get("companyAddress", "") or "")
+        year = str(payload.get("year", "") or "")
+        period = str(payload.get("period", "") or "")
+        employees = payload.get("employees", []) or []
+
+        csv_text = paye_generate_csv(
+            company_name=company_name,
+            company_tin=company_tin,
+            company_address=company_address,
+            year=year,
+            period=period,
+            employees=employees,
+        )
+        filename = paye_build_filename(company_name=company_name, year=year, period=period)
+
+        resp = make_response(csv_text.encode("utf-8"))
+        resp.headers["Content-Type"] = "text/csv; charset=utf-8"
         resp.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
         return resp
 

@@ -20,7 +20,13 @@ echo "==> NIS desktop build (repo: ${ROOT})"
 
 need_cmd node
 need_cmd npm
-need_cmd python3
+if ! command -v python3 >/dev/null 2>&1; then
+  if command -v py >/dev/null 2>&1 && py -3 -c "import sys" >/dev/null 2>&1; then
+    : # Windows Python launcher
+  elif ! command -v python >/dev/null 2>&1; then
+    die "missing Python 3 (need python3, or 'py' with 3.x, or python 3.8+ on PATH)"
+  fi
+fi
 
 NODE_MAJOR="$(node -p "parseInt(process.versions.node.split('.')[0], 10)" 2>/dev/null || echo 0)"
 if [ "${NODE_MAJOR}" -lt 18 ]; then
