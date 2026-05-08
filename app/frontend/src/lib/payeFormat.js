@@ -1,3 +1,92 @@
+function parseCsvLine(line) {
+  const fields = []
+  let i = 0
+  while (i <= line.length) {
+    if (i >= line.length) { fields.push(''); break }
+    if (line[i] === '"') {
+      let val = ''
+      i++
+      while (i < line.length) {
+        if (line[i] === '"' && line[i + 1] === '"') { val += '"'; i += 2 }
+        else if (line[i] === '"') { i++; break }
+        else { val += line[i++] }
+      }
+      fields.push(val)
+      if (line[i] === ',') i++
+    } else {
+      const end = line.indexOf(',', i)
+      if (end === -1) { fields.push(line.slice(i)); break }
+      fields.push(line.slice(i, end))
+      i = end + 1
+    }
+  }
+  return fields
+}
+
+export function parsePayeCsv(text) {
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim())
+  if (lines.length < 2) return null
+
+  const header = parseCsvLine(lines[0])
+  const colIdx = {}
+  header.forEach((h, i) => { colIdx[h.trim()] = i })
+  const get = (f, name, fallback = '') => { const i = colIdx[name]; return i != null ? (f[i] || fallback) : fallback }
+
+  let dataLines = lines.slice(1)
+  let companyInfo = null
+
+  // Detect our own summary row: col 1 (Employee_Number) empty, col 3 (Last_Name) empty, col 7 is a count
+  const lastFields = parseCsvLine(dataLines[dataLines.length - 1])
+  if (!lastFields[colIdx['Employee_Number'] ?? 1] && !lastFields[colIdx['Last_Name'] ?? 3] && /^\d+$/.test(lastFields[colIdx['Period_Employed'] ?? 7])) {
+    const dateStr = (lastFields[colIdx['Other_Names'] ?? 4] || '').replace(/^'/, '')
+    const m = dateStr.match(/^(\d{1,2})\/(\d{4})$/)
+    companyInfo = {
+      tin: get(lastFields, 'TIN'),
+      name: get(lastFields, 'First_Name'),
+      address: get(lastFields, 'Address'),
+      year: m ? m[2] : (/^\d{4}$/.test(dateStr) ? dateStr : ''),
+      period: m ? m[1] : '',
+    }
+    dataLines = dataLines.slice(0, -1)
+  }
+
+  const employees = dataLines
+    .map(line => parseCsvLine(line))
+    .filter(f => f.some(v => v.trim()))
+    .map(f => ({
+      tin: get(f, 'TIN'),
+      employeeNumber: get(f, 'Employee_Number'),
+      firstName: get(f, 'First_Name'),
+      lastName: get(f, 'Last_Name'),
+      otherNames: get(f, 'Other_Names'),
+      address: get(f, 'Address'),
+      payFrequency: get(f, 'Pay_Frequency') || 'Monthly',
+      periodEmployed: get(f, 'Period_Employed'),
+      employeeType: get(f, 'Employee_Type') || 'Full-Time',
+      primarySecondary: get(f, 'Primary_Secondary_Job') || 'Primary',
+      value7A: get(f, 'Value_7A_Salaries_Wages'),
+      totalOvertime: get(f, 'Total_Overtime'),
+      secondJobDeduction: get(f, 'Second_Job_Deduction'),
+      overtimeDeduction: get(f, 'Overtime_Deduction'),
+      value7B: get(f, 'Value_7B_Board_Lodge'),
+      value7CTaxable: get(f, 'Value_7C_Other_Taxable_Allowances'),
+      value7CNonTaxable: get(f, 'Value_7C_Other_Non_Taxable_Allowances'),
+      personalAllowance: get(f, 'Personal_Allowance'),
+      employeeNIS: get(f, 'Employee_NIS_Contribution'),
+      medicalInsurance: get(f, 'Medical_Life_Insurance_Premiums_Deduction'),
+      childrenDeduction: get(f, 'Children_Deduction'),
+      taxDeducted: get(f, 'Tax_Deducted'),
+      dateOfBirth: get(f, 'Date_Of_Birth'),
+      bankName: get(f, 'Bank_Name'),
+      bankAccountNo: get(f, 'Bank_Account_No'),
+      bankRouting: get(f, 'Bank_Account_Routing_Sort_code'),
+      bankTransit: get(f, 'Bank_Account_Transit_No'),
+      childDeclarationNo: get(f, 'Child_Declaration_No'),
+    }))
+
+  return { companyInfo, employees }
+}
+
 const COLUMN_HEADERS = [
   'TIN', 'Employee_Number', 'First_Name', 'Last_Name', 'Other_Names',
   'Address', 'Pay_Frequency', 'Period_Employed', 'Employee_Type',

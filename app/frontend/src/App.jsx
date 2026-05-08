@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { generateLines, generateFileBytes, buildFilename as nisBuildFilename } from './lib/nisFormat.js'
-import { generateCsv as payeGenerateCsv, buildFilename as payeBuildFilename } from './lib/payeFormat.js'
+import { generateCsv as payeGenerateCsv, buildFilename as payeBuildFilename, parsePayeCsv } from './lib/payeFormat.js'
 
 // ── Settings storage ─────────────────────────────────────────────────────────
 
@@ -219,37 +219,37 @@ function payeEmpErrors(emp) {
 
 // Column spec for PAYE table. calc: fn(rowCalc) for read-only calculated fields.
 const PAYE_COLS = [
-  { key: 'tin',                label: 'TIN',              w: 110, t: 'text',   ph: '123456789' },
-  { key: 'employeeNumber',     label: 'Emp #',            w:  90, t: 'text',   ph: '' },
-  { key: 'lastName',           label: 'Last Name',        w: 120, t: 'text',   ph: 'DOE' },
-  { key: 'firstName',          label: 'First Name',       w: 110, t: 'text',   ph: 'JANE' },
-  { key: 'otherNames',         label: 'Other Names',      w: 110, t: 'text',   ph: '' },
-  { key: 'address',            label: 'Address',          w: 240, t: 'text',   ph: 'e.g. 12 Main St' },
-  { key: 'payFrequency',       label: 'Pay Freq',         w: 110, t: 'select', opts: ['Daily', 'Weekly', 'Monthly'] },
-  { key: 'periodEmployed',     label: 'Period',           w:  72, t: 'number', ph: '1', min: 1 },
-  { key: 'employeeType',       label: 'Type',             w: 100, t: 'select', opts: ['Full-Time', 'Part-Time'] },
-  { key: 'primarySecondary',   label: 'Primary/2nd',      w: 100, t: 'select', opts: ['Primary', 'Secondary'] },
-  { key: 'value7A',            label: '7A Wages',         w: 100, t: 'number', ph: '0', min: 0 },
-  { key: 'totalOvertime',      label: 'Overtime',         w:  90, t: 'number', ph: '0', min: 0 },
-  { key: 'secondJobDeduction', label: '2nd Job Deduct',   w: 110, t: 'number', ph: '0', min: 0 },
-  { key: 'overtimeDeduction',  label: 'OT Deduction',     w: 100, t: 'number', ph: '0', min: 0 },
-  { key: '_adj7A',             label: 'Adjusted 7A ↩',    w: 110, calc: c => c.adjusted7A },
-  { key: 'value7B',            label: '7B Board/Lodge',   w: 110, t: 'number', ph: '0', min: 0 },
-  { key: 'value7CTaxable',     label: '7C Taxable',       w: 100, t: 'number', ph: '0', min: 0 },
-  { key: 'value7CNonTaxable',  label: '7C Non-Tax',       w: 100, t: 'number', ph: '0', min: 0 },
-  { key: '_totalIncome',       label: 'Total Income ↩',   w: 110, calc: c => c.totalIncome },
-  { key: 'personalAllowance',  label: 'Personal Allow',   w: 110, t: 'number', ph: '0', min: 0 },
-  { key: 'employeeNIS',        label: 'NIS Contribution', w: 110, t: 'number', ph: '0', min: 0 },
-  { key: 'medicalInsurance',   label: 'Medical/Life Ins', w: 120, t: 'number', ph: '0', min: 0 },
-  { key: 'childrenDeduction',  label: 'Children Deduct',  w: 120, t: 'number', ph: '0', min: 0 },
-  { key: '_totalDeductions',   label: 'Total Deductions ↩', w: 130, calc: c => c.totalDeductions },
-  { key: 'taxDeducted',        label: 'Tax Deducted',     w: 100, t: 'number', ph: '0', min: 0 },
-  { key: 'dateOfBirth',        label: 'Date of Birth',    w: 140, t: 'date' },
-  { key: 'bankName',           label: 'Bank Name',        w: 120, t: 'text',   ph: '' },
-  { key: 'bankAccountNo',      label: 'Bank Account #',   w: 130, t: 'text',   ph: '' },
-  { key: 'bankRouting',        label: 'Routing/Sort',     w: 110, t: 'text',   ph: '' },
-  { key: 'bankTransit',        label: 'Transit No',       w: 100, t: 'text',   ph: '' },
-  { key: 'childDeclarationNo', label: 'Child Decl #',     w: 100, t: 'text',   ph: '' },
+  { key: 'tin',                label: 'TIN',                          w: 110, t: 'text',   ph: '123456789' },
+  { key: 'employeeNumber',     label: 'Employee Number',              w: 130, t: 'text',   ph: '' },
+  { key: 'firstName',          label: 'First Name',                   w: 120, t: 'text',   ph: 'JANE' },
+  { key: 'lastName',           label: 'Last Name',                    w: 120, t: 'text',   ph: 'DOE' },
+  { key: 'otherNames',         label: 'Other Names',                  w: 120, t: 'text',   ph: '' },
+  { key: 'address',            label: 'Address',                      w: 240, t: 'text',   ph: 'e.g. 12 Main St' },
+  { key: 'payFrequency',       label: 'Pay Frequency',                w: 120, t: 'select', opts: ['Daily', 'Weekly', 'Monthly'] },
+  { key: 'periodEmployed',     label: 'Period Employed',              w: 120, t: 'number', ph: '1', min: 1 },
+  { key: 'employeeType',       label: 'Employee Type',                w: 120, t: 'select', opts: ['Full-Time', 'Part-Time'] },
+  { key: 'primarySecondary',   label: 'Primary/Secondary Job',        w: 150, t: 'select', opts: ['Primary', 'Secondary'] },
+  { key: 'value7A',            label: 'Value 7A Salaries Wages',      w: 160, t: 'number', ph: '0', min: 0 },
+  { key: 'totalOvertime',      label: 'Total Overtime',               w: 120, t: 'number', ph: '0', min: 0 },
+  { key: 'secondJobDeduction', label: 'Second Job Deduction',         w: 150, t: 'number', ph: '0', min: 0 },
+  { key: 'overtimeDeduction',  label: 'Overtime Deduction',           w: 140, t: 'number', ph: '0', min: 0 },
+  { key: '_adj7A',             label: 'Adjusted 7A Salaries Wages ↩', w: 190, calc: c => c.adjusted7A },
+  { key: 'value7B',            label: 'Value 7B Board Lodge',         w: 160, t: 'number', ph: '0', min: 0 },
+  { key: 'value7CTaxable',     label: '7C Other Taxable Allowances',  w: 180, t: 'number', ph: '0', min: 0 },
+  { key: 'value7CNonTaxable',  label: '7C Other Non-Taxable Allow.',  w: 180, t: 'number', ph: '0', min: 0 },
+  { key: '_totalIncome',       label: 'Total Income ↩',               w: 120, calc: c => c.totalIncome },
+  { key: 'personalAllowance',  label: 'Personal Allowance',           w: 150, t: 'number', ph: '0', min: 0 },
+  { key: 'employeeNIS',        label: 'Employee NIS Contribution',    w: 180, t: 'number', ph: '0', min: 0 },
+  { key: 'medicalInsurance',   label: 'Medical/Life Insurance',       w: 160, t: 'number', ph: '0', min: 0 },
+  { key: 'childrenDeduction',  label: 'Children Deduction',           w: 150, t: 'number', ph: '0', min: 0 },
+  { key: '_totalDeductions',   label: 'Total Deductions ↩',           w: 140, calc: c => c.totalDeductions },
+  { key: 'taxDeducted',        label: 'Tax Deducted',                 w: 110, t: 'number', ph: '0', min: 0 },
+  { key: 'dateOfBirth',        label: 'Date of Birth',                w: 140, t: 'date' },
+  { key: 'bankName',           label: 'Bank Name',                    w: 130, t: 'text',   ph: '' },
+  { key: 'bankAccountNo',      label: 'Bank Account No',              w: 140, t: 'text',   ph: '' },
+  { key: 'bankRouting',        label: 'Bank Account Routing/Sort Code', w: 200, t: 'text', ph: '' },
+  { key: 'bankTransit',        label: 'Bank Account Transit No',      w: 170, t: 'text',   ph: '' },
+  { key: 'childDeclarationNo', label: 'Child Declaration No',         w: 160, t: 'text',   ph: '' },
 ]
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -460,6 +460,7 @@ export default function App() {
   // Period dates (always 5 slots; 2-5 auto-filled in Weekly mode)
   const [periods, setPeriods] = useState(['', '', '', '', ''])
   const period1Ref = useRef(null)
+  const payeImportRef = useRef(null)
   const [period1Required, setPeriod1Required] = useState(false)
   const [exportHint, setExportHint] = useState('')
 
@@ -828,6 +829,35 @@ export default function App() {
       setPayeTouched({})
       setPayeExportAttempted(false)
     })()
+  }
+
+  function onPayeImportFile(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = ev => {
+      const parsed = parsePayeCsv(ev.target.result)
+      if (!parsed || parsed.employees.length === 0) {
+        alert('Could not read the CSV. Make sure it has a header row and at least one data row.')
+        e.target.value = ''
+        return
+      }
+      const emps = parsed.employees.map(emp => ({ ...emp, id: ++_id }))
+      setPayeEmployees(emps)
+      if (parsed.companyInfo) {
+        const ci = parsed.companyInfo
+        if (ci.name) setPayeCompanyName(ci.name)
+        if (ci.tin) setPayeCompanyTin(ci.tin)
+        if (ci.address) setPayeCompanyAddress(ci.address)
+        if (ci.year) setPayeYear(Number(ci.year) || new Date().getFullYear())
+        if (ci.period) setPayePeriod(ci.period)
+      }
+      setPayeExportError('')
+      setPayeExportAttempted(false)
+      setPayeTouched({})
+      e.target.value = ''
+    }
+    reader.readAsText(file)
   }
 
   async function onPayeExport() {
@@ -1304,6 +1334,8 @@ export default function App() {
             <div className="it-btnrowsplit" style={S.btnRowSplit}>
               <div style={S.btnGroup}>
                 <button style={withDisabled(S.pillWhite, payeBusy)} onClick={clearPayeAll} disabled={payeBusy}>Clear all</button>
+                <button style={withDisabled(S.pillWhite, payeBusy)} onClick={() => payeImportRef.current?.click()} disabled={payeBusy}>Import CSV</button>
+                <input ref={payeImportRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={onPayeImportFile} />
               </div>
               <div className="it-btngroup-right" style={{ ...S.btnGroup, justifyContent: 'flex-end' }}>
                 {payeExportError && (
