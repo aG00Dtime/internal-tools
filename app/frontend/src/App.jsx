@@ -6,6 +6,9 @@ import { generateCsv as payeGenerateCsv, buildFilename as payeBuildFilename } fr
 
 const TERMS_ACCEPT_KEY = 'nis_terms_accepted_v1'
 const SETTINGS_KEY = 'nis_settings_v1'
+const NIS_DRAFT_KEY = 'nis_draft_v1'
+const PAYE_DRAFT_KEY = 'paye_draft_v1'
+const UI_STATE_KEY = 'internal_tools_ui_v1'
 
 const DEFAULT_SETTINGS = {
   wageCeilings: [
@@ -41,6 +44,27 @@ function loadSettings() {
 function persistSettings(s) {
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(s))
+  } catch { /* ignore */ }
+}
+
+function loadJson(key) {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return null
+    return JSON.parse(raw)
+  } catch { /* ignore */ }
+  return null
+}
+
+function persistJson(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch { /* ignore */ }
+}
+
+function removeJson(key) {
+  try {
+    localStorage.removeItem(key)
   } catch { /* ignore */ }
 }
 
@@ -482,6 +506,44 @@ export default function App() {
 
   // ── NIS effects & computed ─────────────────────────────────────────────────
 
+  // Restore drafts (NIS + PAYE + last active tab) from localStorage
+  useEffect(() => {
+    const ui = loadJson(UI_STATE_KEY)
+    if (ui?.activeApp === 'nis' || ui?.activeApp === 'paye') setActiveApp(ui.activeApp)
+
+    const nisDraft = loadJson(NIS_DRAFT_KEY)
+    if (nisDraft && typeof nisDraft === 'object') {
+      if (typeof nisDraft.employerName === 'string') setEmployerName(nisDraft.employerName)
+      if (nisDraft.header && typeof nisDraft.header === 'object') {
+        setHeader(h => ({
+          ...h,
+          ...nisDraft.header,
+          regNoRaw: String(nisDraft.header.regNoRaw ?? h.regNoRaw).slice(0, 6),
+        }))
+      }
+      if (Array.isArray(nisDraft.periods) && nisDraft.periods.length === 5) setPeriods(nisDraft.periods.map(x => String(x || '')))
+      if (Array.isArray(nisDraft.employees) && nisDraft.employees.length > 0) {
+        setEmployees(nisDraft.employees)
+        const maxId = nisDraft.employees.reduce((m, e) => Math.max(m, Number(e?.id) || 0), 0)
+        _id = Math.max(_id, maxId)
+      }
+    }
+
+    const payeDraft = loadJson(PAYE_DRAFT_KEY)
+    if (payeDraft && typeof payeDraft === 'object') {
+      if (typeof payeDraft.companyName === 'string') setPayeCompanyName(payeDraft.companyName)
+      if (typeof payeDraft.companyTin === 'string') setPayeCompanyTin(payeDraft.companyTin.replace(/\D/g, '').slice(0, 9))
+      if (typeof payeDraft.companyAddress === 'string') setPayeCompanyAddress(payeDraft.companyAddress)
+      if (payeDraft.year != null) setPayeYear(Number(payeDraft.year) || new Date().getFullYear())
+      if (typeof payeDraft.period === 'string') setPayePeriod(payeDraft.period.replace(/\D/g, '').slice(0, 2))
+      if (Array.isArray(payeDraft.employees) && payeDraft.employees.length > 0) {
+        setPayeEmployees(payeDraft.employees)
+        const maxId = payeDraft.employees.reduce((m, e) => Math.max(m, Number(e?.id) || 0), 0)
+        _id = Math.max(_id, maxId)
+      }
+    }
+  }, [])
+
   // Load settings from localStorage, fall back to defaults
   useEffect(() => {
     const stored = loadSettings()
@@ -493,6 +555,46 @@ export default function App() {
       setHeader(h => ({ ...h, regNoRaw: (h.regNoRaw || normalized.defaultRegNo).slice(0, 6) }))
     }
   }, [])
+
+  // Persist last active tab
+  useEffect(() => {
+    const t = setTimeout(() => {
+      persistJson(UI_STATE_KEY, { activeApp })
+    }, 150)
+    return () => clearTimeout(t)
+  }, [activeApp])
+
+  // Autosave NIS form draft as user types
+  useEffect(() => {
+    const t = setTimeout(() => {
+      persistJson(NIS_DRAFT_KEY, {
+        v: 1,
+        savedAt: Date.now(),
+        employerName,
+        header,
+        periods,
+        employees,
+      })
+    }, 250)
+    return () => clearTimeout(t)
+  }, [employerName, header, periods, employees])
+
+  // Autosave PAYE form draft as user types
+  useEffect(() => {
+    const t = setTimeout(() => {
+      persistJson(PAYE_DRAFT_KEY, {
+        v: 1,
+        savedAt: Date.now(),
+        companyName: payeCompanyName,
+        companyTin: payeCompanyTin,
+        companyAddress: payeCompanyAddress,
+        year: payeYear,
+        period: payePeriod,
+        employees: payeEmployees,
+      })
+    }, 250)
+    return () => clearTimeout(t)
+  }, [payeCompanyName, payeCompanyTin, payeCompanyAddress, payeYear, payePeriod, payeEmployees])
 
   useEffect(() => {
     if (showSettings) setCalcSettingsUnlocked(false)
@@ -582,6 +684,7 @@ export default function App() {
         cancelLabel: 'Cancel',
       })
       if (!ok) return
+      removeJson(NIS_DRAFT_KEY)
       setEmployerName(settings?.defaultEmployerName || '')
       setHeader({ regNoRaw: settings?.defaultRegNo || '', contributionYear: new Date().getFullYear(), contributionMonthName: MONTH_NAMES[new Date().getMonth()], scheduleType: 'Monthly' })
       setPeriods(['', '', '', '', ''])
@@ -714,6 +817,7 @@ export default function App() {
         cancelLabel: 'Cancel',
       })
       if (!ok) return
+      removeJson(PAYE_DRAFT_KEY)
       setPayeCompanyName('')
       setPayeCompanyTin('')
       setPayeCompanyAddress('')
