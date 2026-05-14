@@ -109,10 +109,7 @@ function toInt(v) {
 function csvRow(fields) {
   return fields.map(f => {
     const s = String(f == null ? '' : f)
-    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
-      return '"' + s.replace(/"/g, '""') + '"'
-    }
-    return s
+    return '"' + s.replace(/"/g, '""') + '"'
   }).join(',')
 }
 
@@ -160,7 +157,7 @@ export function generateCsv(companyName, companyTin, companyAddress, year, perio
   }
 
   const submissionDate = period && year
-    ? `'${String(period).padStart(2, '0')}/${year}`
+    ? `${String(period).padStart(2, '0')}/${year}`
     : (year ? String(year) : '')
 
   rows.push(csvRow([
