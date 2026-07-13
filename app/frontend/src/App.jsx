@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { generateLines, generateFileBytes, buildFilename as nisBuildFilename } from './lib/nisFormat.js'
+import { generateLines, generateFileBytes, buildFilename as nisBuildFilename, generateNisCsv, parseNisCsv } from './lib/nisFormat.js'
 import { generateCsv as payeGenerateCsv, buildFilename as payeBuildFilename, parsePayeCsv } from './lib/payeFormat.js'
 
 // ── Settings storage ─────────────────────────────────────────────────────────
@@ -460,6 +460,7 @@ export default function App() {
   // Period dates (always 5 slots; 2-5 auto-filled in Weekly mode)
   const [periods, setPeriods] = useState(['', '', '', '', ''])
   const period1Ref = useRef(null)
+  const nisImportRef = useRef(null)
   const payeImportRef = useRef(null)
   const [period1Required, setPeriod1Required] = useState(false)
   const [exportHint, setExportHint] = useState('')
@@ -691,6 +692,51 @@ export default function App() {
       setPeriods(['', '', '', '', ''])
       setEmployees([newEmployee()])
     })()
+  }
+
+  function onNisImportFile(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = ev => {
+      const parsed = parseNisCsv(ev.target.result)
+      if (!parsed || parsed.employees.length === 0) {
+        alert('Could not read the CSV. Make sure it has a header row and at least one data row.')
+        e.target.value = ''
+        return
+      }
+      const emps = parsed.employees.map(emp => ({ ...emp, id: ++_id }))
+      setEmployees(emps)
+      if (parsed.scheduleInfo) {
+        const si = parsed.scheduleInfo
+        if (si.employerName) setEmployerName(si.employerName)
+        setHeader(h => ({
+          ...h,
+          regNoRaw: si.regNoRaw ? String(si.regNoRaw).slice(0, 6) : h.regNoRaw,
+          contributionYear: si.contributionYear ? Number(si.contributionYear) || h.contributionYear : h.contributionYear,
+          contributionMonthName: si.contributionMonthName && MONTH_NAMES.includes(si.contributionMonthName) ? si.contributionMonthName : h.contributionMonthName,
+          scheduleType: (si.scheduleType === 'Weekly' || si.scheduleType === 'Monthly') ? si.scheduleType : h.scheduleType,
+        }))
+      }
+      setExportHint('')
+      setPeriod1Required(false)
+      e.target.value = ''
+    }
+    reader.readAsText(file)
+  }
+
+  function onNisExportCsv() {
+    const csvText = generateNisCsv(
+      employerName,
+      header.regNoRaw,
+      header.contributionYear,
+      header.contributionMonthName,
+      header.scheduleType,
+      employees,
+    )
+    const safe = (employerName || 'NIS').replace(/ /g, '_').replace(/^_+|_+$/g, '') || 'NIS'
+    const mon = header.contributionMonthName.slice(0, 3).toUpperCase()
+    triggerDownload(new TextEncoder().encode(csvText), `${safe}_${header.contributionYear}_${mon}.csv`, 'text/csv;charset=utf-8;')
   }
 
   async function onGenerate() {
@@ -1131,6 +1177,9 @@ export default function App() {
             <div className="it-btnrowsplit" style={S.btnRowSplit}>
               <div style={S.btnGroup}>
                 <button style={withDisabled(S.pillWhite, busy)} onClick={clearAll} disabled={busy}>Clear all</button>
+                <button style={withDisabled(S.pillWhite, busy)} onClick={() => nisImportRef.current?.click()} disabled={busy}>Import CSV</button>
+                <input ref={nisImportRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={onNisImportFile} />
+                <button style={withDisabled(S.pillWhite, busy)} onClick={onNisExportCsv} disabled={busy}>Export CSV</button>
               </div>
 
               <div className="it-btngroup-right" style={{ ...S.btnGroup, justifyContent: 'flex-end' }}>

@@ -126,3 +126,111 @@ export function generateLines({ header, periodDates, employees }) {
 export function generateFileBytes(lines) {
   return toCP1252Bytes(lines.join('\n'))
 }
+
+// ── NIS CSV round-trip ────────────────────────────────────────────────────────
+
+const NIS_CSV_HEADERS = [
+  'Over_60', 'SSN', 'Surname', 'First_Name',
+  'Wages_1', 'Wages_2', 'Wages_3', 'Wages_4', 'Wages_5', 'Weeks_Worked',
+]
+
+function csvField(v) {
+  const s = String(v == null ? '' : v)
+  return '"' + s.replace(/"/g, '""') + '"'
+}
+function csvRow(fields) { return fields.map(csvField).join(',') }
+
+export function generateNisCsv(employerName, regNoRaw, contributionYear, contributionMonthName, scheduleType, employees) {
+  const rows = [csvRow(NIS_CSV_HEADERS)]
+  for (const emp of employees) {
+    rows.push(csvRow([
+      emp.over60 || 'No',
+      emp.ssn || '',
+      emp.surname || '',
+      emp.firstname || '',
+      ...(emp.wages || ['', '', '', '', '']).slice(0, 5).map(w => w ?? ''),
+      emp.weeksWorked || '',
+    ]))
+  }
+  // metadata sentinel row — Over_60 = '__meta__'
+  rows.push(csvRow([
+    '__meta__',
+    employerName || '',
+    regNoRaw || '',
+    String(contributionYear || ''),
+    contributionMonthName || '',
+    scheduleType || 'Monthly',
+    '', '', '', '',
+  ]))
+  return rows.join('\n')
+}
+
+export function parseNisCsv(text) {
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim())
+  if (lines.length < 2) return null
+
+  function parseLine(line) {
+    const fields = []
+    let i = 0
+    while (i <= line.length) {
+      if (i >= line.length) { fields.push(''); break }
+      if (line[i] === '"') {
+        let val = ''
+        i++
+        while (i < line.length) {
+          if (line[i] === '"' && line[i + 1] === '"') { val += '"'; i += 2 }
+          else if (line[i] === '"') { i++; break }
+          else { val += line[i++] }
+        }
+        fields.push(val)
+        if (line[i] === ',') i++
+      } else {
+        const end = line.indexOf(',', i)
+        if (end === -1) { fields.push(line.slice(i)); break }
+        fields.push(line.slice(i, end))
+        i = end + 1
+      }
+    }
+    return fields
+  }
+
+  const header = parseLine(lines[0])
+  const colIdx = {}
+  header.forEach((h, i) => { colIdx[h.trim()] = i })
+  const get = (f, name, fallback = '') => { const i = colIdx[name]; return i != null ? (f[i] ?? fallback) : fallback }
+
+  let dataLines = lines.slice(1)
+  let scheduleInfo = null
+
+  const lastFields = parseLine(dataLines[dataLines.length - 1])
+  if (get(lastFields, 'Over_60') === '__meta__') {
+    scheduleInfo = {
+      employerName: get(lastFields, 'SSN'),
+      regNoRaw: get(lastFields, 'Surname'),
+      contributionYear: get(lastFields, 'First_Name'),
+      contributionMonthName: get(lastFields, 'Wages_1'),
+      scheduleType: get(lastFields, 'Wages_2') || 'Monthly',
+    }
+    dataLines = dataLines.slice(0, -1)
+  }
+
+  const employees = dataLines
+    .map(parseLine)
+    .filter(f => f.some(v => v.trim()))
+    .map(f => ({
+      over60: get(f, 'Over_60') || 'No',
+      ssn: get(f, 'SSN'),
+      surname: get(f, 'Surname'),
+      firstname: get(f, 'First_Name'),
+      wages: [
+        get(f, 'Wages_1'),
+        get(f, 'Wages_2'),
+        get(f, 'Wages_3'),
+        get(f, 'Wages_4'),
+        get(f, 'Wages_5'),
+      ],
+      weeksWorked: get(f, 'Weeks_Worked'),
+    }))
+
+  return { scheduleInfo, employees }
+}
