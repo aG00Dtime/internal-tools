@@ -64,6 +64,10 @@ const MONTH_NAME_TO_NUMBER = {
   September: '09', October: '10', November: '11', December: '12',
 }
 
+const MONTH_NUMBER_TO_NAME = Object.fromEntries(
+  Object.entries(MONTH_NAME_TO_NUMBER).map(([name, num]) => [num, name])
+)
+
 function formatMoneyCellAsCentsString(value) {
   let rawInt = 0
   if (value != null && value !== '') rawInt = bankersRound(Number(value) || 0)
@@ -233,4 +237,67 @@ export function parseNisCsv(text) {
     }))
 
   return { scheduleInfo, employees }
+}
+
+// ── NIS .txt reimport ─────────────────────────────────────────────────────────
+// Fixed-width layout per line (168 chars):
+//   0-5   regno (6)   6-9 year (4)   10-11 month (2)   12 sched (1)
+//   13-21 SSN (9)   22-41 surname (20)   42-56 firstname (15)
+//   57-96 periods 5×8   97-146 wages 5×10   147-156 EE (10)   157-166 ER (10)   167 wks (1)
+
+export function parseNisTxt(text) {
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim().length >= 100)
+  if (lines.length === 0) return null
+
+  const first = lines[0]
+
+  const regnoStored = first.slice(0, 6)
+  // Strip leading zeros for numeric reg nos, keep alphanumeric as-is
+  const regNoRaw = /^\d+$/.test(regnoStored)
+    ? regnoStored.replace(/^0+/, '') || ''
+    : regnoStored.trim()
+
+  const contYear = parseInt(first.slice(6, 10), 10) || new Date().getFullYear()
+  const contMonthNum = first.slice(10, 12)
+  const schedChar = first.slice(12, 13).toUpperCase()
+  const scheduleType = schedChar === 'W' ? 'Weekly' : 'Monthly'
+  const contributionMonthName = MONTH_NUMBER_TO_NAME[contMonthNum] || 'January'
+
+  // Period dates — same on every line, read from first
+  const periods = []
+  for (let i = 0; i < 5; i++) {
+    const raw = first.slice(57 + i * 8, 57 + i * 8 + 8)
+    if (raw.trim()) {
+      periods.push(`${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`)
+    } else {
+      periods.push('')
+    }
+  }
+
+  const employees = lines.map(line => {
+    const ssn = line.slice(13, 22).trim()
+    const surname = line.slice(22, 42).trim()
+    const firstname = line.slice(42, 57).trim()
+
+    const wages = []
+    for (let i = 0; i < 5; i++) {
+      const cents = parseInt(line.slice(97 + i * 10, 97 + i * 10 + 10), 10) || 0
+      wages.push(cents > 0 ? String(cents / 100) : '')
+    }
+
+    const eeCents = parseInt(line.slice(147, 157), 10) || 0
+    const erCents = parseInt(line.slice(157, 167), 10) || 0
+    // If EE is 0 but ER is non-zero the employee was over 60 (over-60 has no EE contribution)
+    const over60 = (eeCents === 0 && erCents > 0) ? 'Yes' : 'No'
+
+    const wksRaw = line.slice(167, 168).trim()
+
+    return { over60, ssn, surname, firstname, wages, weeksWorked: wksRaw || '' }
+  })
+
+  return {
+    scheduleInfo: { regNoRaw, contributionYear: contYear, contributionMonthName, scheduleType },
+    periods,
+    employees,
+  }
 }
