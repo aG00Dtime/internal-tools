@@ -1,0 +1,4 @@
+# Optional: build standalone backend for Electron (see app/desktop/scripts/build-backend.sh)
+pyinstaller>=6.0.0
+
+# Linux: PyInstaller needs `objdump` (Debian/Ubuntu: `sudo apt install binutils`).

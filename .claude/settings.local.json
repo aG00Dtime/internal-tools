@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 *)",
+      "Bash(python *)",
+      "Bash(where python *)",
+      "Bash(where py *)",
+      "Bash(py --version)",
+      "Bash(py *)",
+      "Bash(git push *)",
+      "Bash(git remote *)",
+      "Bash(npm run *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git add *)",
+      "Bash(git credential-manager *)",
+      "Bash(git stash *)",
+      "Bash(git checkout *)",
+      "Bash(git commit -m 'Widen PAYE address column to 240px *)",
+      "Bash(git commit -m 'Fix PAYE address: text input, 240px wide *)",
+      "Bash(git commit -m 'Rename app title to Internal Tools, remove V75 reference *)",
+      "Bash(git commit -m 'Update favicon to Internal Tools \\(IT\\) mark *)",
+      "Bash(npm install *)",
+      "Bash(node *)"
+    ]
+  }
+}

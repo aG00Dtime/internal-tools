@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Background rounded rect -->
+  <rect width="1024" height="1024" rx="220" ry="220" fill="url(#bg)"/>
+
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a6fbf"/>
+      <stop offset="100%" style="stop-color:#0d4a8a"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff"/>
+      <stop offset="100%" style="stop-color:#e8f0fa"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Document shape -->
+  <rect x="220" y="160" width="480" height="620" rx="28" ry="28" fill="url(#paper)" />
+
+  <!-- Folded corner -->
+  <polygon points="580,160 700,280 580,280" fill="#c5d8f0"/>
+  <polygon points="580,160 700,280 580,160" fill="#a8c4e8"/>
+
+  <!-- Horizontal lines representing data rows -->
+  <rect x="270" y="320" width="260" height="22" rx="6" fill="#1a6fbf" opacity="0.85"/>
+  <rect x="270" y="370" width="380" height="16" rx="6" fill="#1a6fbf" opacity="0.3"/>
+  <rect x="270" y="408" width="340" height="16" rx="6" fill="#1a6fbf" opacity="0.3"/>
+  <rect x="270" y="446" width="360" height="16" rx="6" fill="#1a6fbf" opacity="0.3"/>
+  <rect x="270" y="484" width="300" height="16" rx="6" fill="#1a6fbf" opacity="0.3"/>
+  <rect x="270" y="522" width="380" height="16" rx="6" fill="#1a6fbf" opacity="0.3"/>
+  <rect x="270" y="560" width="280" height="16" rx="6" fill="#1a6fbf" opacity="0.3"/>
+  <rect x="270" y="598" width="350" height="16" rx="6" fill="#1a6fbf" opacity="0.3"/>
+
+  <!-- Small NIS label at top of doc -->
+  <text x="512" y="262" font-family="Arial, Helvetica, sans-serif" font-size="58" font-weight="700"
+        fill="#1a6fbf" text-anchor="middle" letter-spacing="4">NIS</text>
+
+  <!-- Checkmark / tick badge at bottom-right -->
+  <circle cx="720" cy="740" r="110" fill="#27ae60"/>
+  <polyline points="660,740 700,785 790,700" stroke="white" stroke-width="38"
+            stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>
