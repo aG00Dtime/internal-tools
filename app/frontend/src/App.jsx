@@ -279,60 +279,61 @@ const S = {
     width: '100%',
     maxWidth: 'none',
     margin: 0,
-    padding: '24px 24px 80px',
+    padding: '28px 28px 80px',
     boxSizing: 'border-box',
     color: C.ink,
     background: C.canvas,
     fontFamily: FONT,
   },
-  topRow: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 20 },
-  h1: { margin: 0, fontSize: 28, fontWeight: 600, lineHeight: 1.2, letterSpacing: '-0.3px', fontFamily: FONT },
-  subtitle: { marginTop: 6, fontSize: 14, color: C.muted, lineHeight: 1.5 },
-  mono: { fontFamily: 'ui-monospace, SF Mono, Menlo, monospace', textTransform: 'uppercase', letterSpacing: '0.54px', fontSize: 11, color: C.muted },
-  card: { background: C.surfaceCard, border: `1px solid ${C.hairline}`, borderRadius: 12, padding: 20, marginTop: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' },
-  cardHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12 },
-  headerFooterRow: { display: 'flex', justifyContent: 'flex-end', marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.hairline}` },
+  topRow: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 24 },
+  h1: { margin: 0, fontSize: 30, fontWeight: 700, lineHeight: 1.15, letterSpacing: '-0.5px', fontFamily: FONT },
+  subtitle: { marginTop: 6, fontSize: 13.5, color: C.muted, lineHeight: 1.6 },
+  mono: { fontFamily: 'ui-monospace, SF Mono, Menlo, monospace', textTransform: 'uppercase', letterSpacing: '0.7px', fontSize: 10.5, fontWeight: 600, color: C.muted },
+  card: { background: C.surfaceCard, border: `1px solid ${C.hairline}`, borderRadius: 14, padding: 22, marginTop: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 4px 14px rgba(0,0,0,0.04)' },
+  cardHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 14 },
+  headerFooterRow: { display: 'flex', justifyContent: 'flex-end', marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.hairline}` },
   payableBox: { textAlign: 'right' },
-  grid4: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 },
-  grid5: { display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 12 },
-  label: { display: 'block', fontSize: 12, fontWeight: 500, letterSpacing: '0.3px', textTransform: 'uppercase', marginBottom: 6, color: C.muted },
-  input: { width: '100%', boxSizing: 'border-box', border: `1px solid ${C.hairline}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, outline: 'none', background: C.canvas, color: C.ink, height: 40 },
-  inputSm: { width: '100%', boxSizing: 'border-box', border: `1px solid ${C.hairline}`, borderRadius: 8, padding: '7px 10px', fontSize: 13, outline: 'none', background: C.canvas, fontFamily: 'inherit', color: C.ink },
+  grid4: { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 14 },
+  grid5: { display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 14 },
+  label: { display: 'block', fontSize: 11.5, fontWeight: 600, letterSpacing: '0.4px', textTransform: 'uppercase', marginBottom: 7, color: C.muted },
+  input: { width: '100%', boxSizing: 'border-box', border: `1px solid ${C.hairline}`, borderRadius: 8, padding: '10px 12px', fontSize: 14, outline: 'none', background: C.canvas, color: C.ink, height: 42 },
+  inputSm: { width: '100%', boxSizing: 'border-box', border: `1px solid ${C.hairline}`, borderRadius: 7, padding: '6px 9px', fontSize: 13, outline: 'none', background: C.canvas, fontFamily: 'inherit', color: C.ink, height: 34 },
   inputCalc: { width: '100%', boxSizing: 'border-box', border: '1px solid transparent', borderRadius: 5, padding: '5px 7px', fontSize: 13, outline: 'none', background: 'transparent', color: C.ink, fontFamily: 'inherit' },
-  pill: { borderRadius: 8, border: 'none', padding: '0 20px', background: C.primary, color: C.canvas, cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', fontWeight: 600, height: 40, display: 'inline-flex', alignItems: 'center' },
-  pillWhite: { borderRadius: 8, border: `1px solid ${C.hairline}`, padding: '0 16px', background: C.canvas, color: C.ink, cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', fontWeight: 500, height: 40, display: 'inline-flex', alignItems: 'center' },
-  pillSm: { borderRadius: 8, border: 'none', padding: '0 14px', background: C.primary, color: C.canvas, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', fontWeight: 600, height: 34, display: 'inline-flex', alignItems: 'center' },
-  pillSmWhite: { borderRadius: 8, border: `1px solid ${C.hairline}`, padding: '0 14px', background: C.canvas, color: C.ink, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', fontWeight: 500, height: 34, display: 'inline-flex', alignItems: 'center' },
-  btnRow: { display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap', alignItems: 'center' },
-  btnRowSplit: { display: 'flex', justifyContent: 'space-between', gap: 10, marginTop: 16, flexWrap: 'wrap', alignItems: 'center' },
-  btnGroup: { display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' },
-  tableWrap: { overflowX: 'auto', marginTop: 10 },
+  pill: { borderRadius: 9, border: 'none', padding: '0 22px', background: C.primary, color: C.canvas, cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', fontWeight: 600, height: 42, display: 'inline-flex', alignItems: 'center', letterSpacing: '0.1px' },
+  pillWhite: { borderRadius: 9, border: `1px solid ${C.hairline}`, padding: '0 18px', background: C.canvas, color: C.ink, cursor: 'pointer', fontSize: 14, fontFamily: 'inherit', fontWeight: 500, height: 42, display: 'inline-flex', alignItems: 'center' },
+  pillSm: { borderRadius: 7, border: 'none', padding: '0 16px', background: C.primary, color: C.canvas, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', fontWeight: 600, height: 34, display: 'inline-flex', alignItems: 'center', letterSpacing: '0.1px' },
+  pillSmWhite: { borderRadius: 7, border: `1px solid ${C.hairline}`, padding: '0 14px', background: C.canvas, color: C.ink, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', fontWeight: 500, height: 34, display: 'inline-flex', alignItems: 'center' },
+  btnRow: { display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap', alignItems: 'center' },
+  btnRowSplit: { display: 'flex', justifyContent: 'space-between', gap: 10, marginTop: 18, flexWrap: 'wrap', alignItems: 'center' },
+  btnGroup: { display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' },
+  tableWrap: { overflowX: 'auto', marginTop: 12 },
   table: { width: '100%', borderCollapse: 'collapse', fontSize: 13 },
-  th: { textAlign: 'left', fontSize: 10, fontWeight: 500, letterSpacing: '0.5px', textTransform: 'uppercase', borderBottom: `1px solid ${C.hairline}`, padding: '0 8px 8px', whiteSpace: 'nowrap', color: C.muted },
-  thCalc: { textAlign: 'right', fontSize: 10, fontWeight: 500, letterSpacing: '0.5px', textTransform: 'uppercase', borderBottom: `1px solid ${C.hairline}`, padding: '0 8px 8px', whiteSpace: 'nowrap', color: C.muted },
-  td: { padding: '6px 6px', verticalAlign: 'middle', borderBottom: `1px solid ${C.hairline}` },
-  tdCalc: { padding: '6px 8px', verticalAlign: 'middle', borderBottom: `1px solid ${C.hairline}`, textAlign: 'right', fontSize: 13, whiteSpace: 'nowrap' },
-  tdRemove: { padding: '6px 8px', verticalAlign: 'middle', borderBottom: `1px solid ${C.hairline}`, textAlign: 'center' },
-  totalRow: { fontSize: 13, fontWeight: 600, borderTop: `1px solid ${C.hairline}` },
-  totalLabel: { padding: '10px 8px', textAlign: 'right', fontSize: 12, color: C.muted, whiteSpace: 'nowrap' },
-  totalVal: { padding: '10px 8px', textAlign: 'right', fontWeight: 600 },
-  payable: { fontSize: 20, fontWeight: 600, letterSpacing: '-0.2px', marginTop: 4 },
-  sectionLabel: { fontSize: 12, fontWeight: 600, marginTop: 16, marginBottom: 6, color: C.muted },
-  settingsInputNarrow: { boxSizing: 'border-box', border: `1px solid ${C.hairline}`, borderRadius: 8, padding: '8px 10px', fontSize: 13, outline: 'none', width: '100%', fontFamily: 'inherit', background: C.canvas, height: 38 },
-  linkBtn: { border: 'none', background: 'none', cursor: 'pointer', padding: 0, fontSize: 12, textDecoration: 'underline', opacity: 0.7 },
+  th: { textAlign: 'left', fontSize: 11, fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', borderBottom: `2px solid ${C.hairline}`, padding: '4px 8px 10px', whiteSpace: 'nowrap', color: C.muted },
+  thCalc: { textAlign: 'right', fontSize: 11, fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', borderBottom: `2px solid ${C.hairline}`, padding: '4px 8px 10px', whiteSpace: 'nowrap', color: C.muted },
+  td: { padding: '8px 8px', verticalAlign: 'middle', borderBottom: `1px solid ${C.hairline}` },
+  tdCalc: { padding: '8px 10px', verticalAlign: 'middle', borderBottom: `1px solid ${C.hairline}`, textAlign: 'right', fontSize: 13, whiteSpace: 'nowrap' },
+  tdRemove: { padding: '8px 10px', verticalAlign: 'middle', borderBottom: `1px solid ${C.hairline}`, textAlign: 'center' },
+  totalRow: { fontSize: 13, fontWeight: 700, borderTop: `2px solid ${C.hairline}` },
+  totalLabel: { padding: '12px 10px', textAlign: 'right', fontSize: 12, color: C.muted, whiteSpace: 'nowrap' },
+  totalVal: { padding: '12px 10px', textAlign: 'right', fontWeight: 700 },
+  payable: { fontSize: 24, fontWeight: 700, letterSpacing: '-0.4px', marginTop: 4 },
+  sectionLabel: { fontSize: 11.5, fontWeight: 600, marginTop: 18, marginBottom: 8, color: C.muted, letterSpacing: '0.3px', textTransform: 'uppercase' },
+  settingsInputNarrow: { boxSizing: 'border-box', border: `1px solid ${C.hairline}`, borderRadius: 8, padding: '8px 10px', fontSize: 13, outline: 'none', width: '100%', fontFamily: 'inherit', background: C.canvas, height: 40 },
+  linkBtn: { border: 'none', background: 'none', cursor: 'pointer', padding: 0, fontSize: 12, textDecoration: 'underline', opacity: 0.6 },
   inputError: { borderColor: C.error, boxShadow: `0 0 0 1px ${C.error}` },
   fieldError: { fontSize: 11, color: C.error, marginTop: 3 },
 }
 
 // Nav-pill-group active / inactive tab styles
 const navPillActive = {
-  borderRadius: 9999, border: 'none', padding: '8px 16px',
+  borderRadius: 9999, border: 'none', padding: '8px 20px',
   background: C.canvas, color: C.ink, cursor: 'pointer', fontSize: 14,
-  fontFamily: FONT, fontWeight: 500, boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+  fontFamily: FONT, fontWeight: 600,
+  boxShadow: '0 1px 4px rgba(0,0,0,0.14), 0 0 0 1px rgba(0,0,0,0.06)',
   whiteSpace: 'nowrap',
 }
 const navPillInactive = {
-  borderRadius: 9999, border: 'none', padding: '8px 16px',
+  borderRadius: 9999, border: 'none', padding: '8px 20px',
   background: 'transparent', color: C.muted, cursor: 'pointer', fontSize: 14,
   fontFamily: FONT, fontWeight: 500, whiteSpace: 'nowrap',
 }
@@ -400,20 +401,31 @@ function useDashedFocus() {
       :focus-visible { outline: 2px solid ${C.accent}; outline-offset: 2px; }
       button, input, select { font: inherit; }
 
+      /* Transitions */
+      button { transition: opacity 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease; }
+      input, select { transition: border-color 0.12s ease, box-shadow 0.12s ease; }
+
+      /* Input hover */
+      input:not(:disabled):hover, select:not(:disabled):hover { border-color: #9ca3af; }
+
+      /* Table row hover */
+      tbody tr { transition: background 0.1s ease; }
+      tbody tr:hover td { background: rgba(0,0,0,0.022) !important; }
+
       /* Responsive grids — mobile first (1-col), expand at breakpoints */
-      .it-grid-nis-header  { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; align-items: start; }
-      .it-grid-paye-header { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; align-items: start; }
-      .it-grid-settings-2  { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
-      .it-summary-bar      { display: flex; gap: 20px; flex-wrap: wrap; }
-      .it-top-row          { display: flex; align-items: flex-start; justify-content: space-between; gap: 12; margin-bottom: 20px; }
+      .it-grid-nis-header  { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; align-items: start; }
+      .it-grid-paye-header { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; align-items: start; }
+      .it-grid-settings-2  { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; }
+      .it-summary-bar      { display: flex; gap: 28px; flex-wrap: wrap; }
+      .it-top-row          { display: flex; align-items: flex-start; justify-content: space-between; gap: 12; margin-bottom: 24px; }
 
       @media (min-width: 640px) {
         .it-grid-nis-header  { grid-template-columns: 2fr 1fr 1fr 1fr 1fr; align-items: start; }
         .it-grid-paye-header { grid-template-columns: 2fr 1fr 1fr 1fr; align-items: start; }
       }
       @media (max-width: 639px) {
-        .it-page  { padding: 16px 12px 60px !important; }
-        .it-card  { padding: 14px !important; }
+        .it-page  { padding: 16px 14px 60px !important; }
+        .it-card  { padding: 16px !important; }
         .it-top-row { flex-direction: column !important; align-items: flex-start !important; }
         .it-top-row-actions { align-self: flex-start; margin-top: 8px; }
         .it-btnrowsplit { flex-direction: column-reverse !important; align-items: stretch !important; }
